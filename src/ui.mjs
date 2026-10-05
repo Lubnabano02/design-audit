@@ -3,6 +3,8 @@
  * Plain HTML and CSS — no build step, no framework, no network calls.
  */
 
+import { collapseFindings, collapseStats } from './collapse.mjs';
+
 export const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -129,6 +131,48 @@ td{padding:11px 10px;vertical-align:top}
 .none{padding:48px 0;text-align:center;color:var(--ink-3)}
 footer{margin:44px 0 0;padding-top:16px;border-top:1px solid var(--line);
   font-size:12px;color:var(--ink-3)}
+
+/* hero */
+.hero{position:relative;padding:18px 0 46px;text-align:center}
+.hero::before{content:"";position:absolute;inset:-60px -40% auto;height:380px;z-index:-1;
+  background:radial-gradient(60% 60% at 50% 0%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 70%)}
+.hero h1{font-size:40px;line-height:1.1;letter-spacing:-.03em;margin:0 auto 14px;max-width:16ch}
+.hero .lede{font-size:16px;margin:0 auto 10px;max-width:56ch}
+.kicker{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0 0 20px}
+.kicker b{color:var(--ok);font-weight:700}
+
+/* sections */
+.band{margin:56px 0 0}
+.band h2{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);
+  margin:0 0 18px;font-weight:650}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.chk{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
+.chk b{display:block;font-size:13.5px;margin:0 0 3px}
+.chk span{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.step{position:relative;padding:0 0 0 38px}
+.step::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-1px;
+  width:26px;height:26px;border-radius:50%;background:var(--surface);border:1px solid var(--line);
+  color:var(--ink-2);font:650 12px/25px ui-sans-serif,system-ui;text-align:center}
+.step b{display:block;font-size:14px;margin:0 0 3px}
+.step span{font-size:13px;color:var(--ink-2)}
+
+/* download menu */
+.menu{position:relative}
+.menu>button{display:inline-flex;align-items:center;gap:8px}
+.menu>button::after{content:"";width:0;height:0;border:4px solid transparent;
+  border-top-color:currentColor;margin-top:2px}
+.menu .pop{position:absolute;right:0;top:calc(100% + 8px);z-index:30;min-width:310px;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  box-shadow:var(--shadow);padding:6px;display:none}
+.menu[data-open="true"] .pop{display:block}
+.menu .pop a{display:block;text-decoration:none;color:inherit;border-radius:8px;padding:10px 12px}
+.menu .pop a:hover,.menu .pop a:focus-visible{background:var(--surface-2);outline:none}
+.menu .pop b{display:block;font-size:13.5px;margin:0 0 2px}
+.menu .pop span{display:block;font-size:12px;color:var(--ink-2);line-height:1.45}
+.menu .pop hr{border:0;border-top:1px solid var(--line);margin:5px 8px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);
   color:var(--bg);font-size:12.5px;padding:9px 15px;border-radius:8px;opacity:0;
   transition:opacity .18s;pointer-events:none}
@@ -160,9 +204,15 @@ const ICON_COMPARE = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none
 <rect x="2" y="4" width="7" height="12" rx="1.5"/><rect x="11" y="4" width="7" height="12" rx="1.5"/><path d="M10 2.5v15"/></svg>`;
 
 export function landing() {
+  const check = (name, what) => `<div class="chk"><b>${name}</b><span>${what}</span></div>`;
   return shell('design-audit', `
-<h1>Check a page against your design system</h1>
-<p class="lede">Reads what the browser actually rendered — colour, type, spacing, contrast, target size — and reports where it drifted from your tokens. Everything runs on this machine.</p>
+<div class="hero">
+  <span class="kicker"><b>●</b> Runs on your machine</span>
+  <h1>See where the build drifted from the design</h1>
+  <p class="lede">Reads what the browser actually rendered and measures it against your design tokens.
+     Then tells the designer and the developer, each in their own language.</p>
+</div>
+
 <div class="modes">
   <a class="mode" href="/audit">
     <div class="ic">${ICON_AUDIT}</div>
@@ -174,12 +224,34 @@ export function landing() {
   <a class="mode" href="/compare">
     <div class="ic">${ICON_COMPARE}</div>
     <h2>Compare with Figma</h2>
-    <p>The same checks, plus the Figma frame beside the build so you can see them together.</p>
+    <p>The same checks, plus the frame beside the build so you can see them together.</p>
     <div class="go">Start →</div>
     <div class="meta">Needs: a URL, a frame link, a Figma token</div>
   </a>
 </div>
-<footer>Nothing is uploaded. A Figma token is held in memory for the run and never written to disk.</footer>
+
+<div class="band">
+  <h2>What it checks</h2>
+  <div class="checks">
+    ${check('Readability', 'Contrast measured against the background the text really sits on, not the one it declares.')}
+    ${check('Colour', 'Rendered colours matched to your palette by how different they look, not by string equality.')}
+    ${check('Type', 'Sizes, families and weights that are not in your system.')}
+    ${check('Spacing', 'Padding and margins that do not sit on your base unit.')}
+    ${check('Touch targets', 'Controls too small to hit reliably.')}
+  </div>
+</div>
+
+<div class="band">
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step"><b>Point it at a page</b><span>It loads the page in a real browser and reads every visible element.</span></div>
+    <div class="step"><b>Give it your tokens</b><span>Your palette, type scale and spacing unit become the rules it checks against.</span></div>
+    <div class="step"><b>Take the reports</b><span>A visual review for the designer, a precise one for the developer, a CSV for triage.</span></div>
+  </div>
+</div>
+
+<footer>Nothing is uploaded and nothing is stored. A Figma token is held in memory for one run and never written to disk.
+  <a href="https://github.com/Lubnabano02/design-audit">Source on GitHub</a>.</footer>
 `, { wide: true });
 }
 
@@ -275,6 +347,7 @@ const pane = (title, src, empty) =>
 /** The in-app results view, with the downloads. */
 export function results(id, result, meta, images, mode) {
   const { findings, suppressed = [] } = result;
+  const problems = collapseStats(collapseFindings(findings)).problems;
   const n = sev => findings.filter(f => f.severity === sev).length;
   const checks = [...new Set(findings.map(f => f.check))].sort();
 
@@ -290,15 +363,25 @@ export function results(id, result, meta, images, mode) {
 <p class="lede">${esc(meta.baseUrl ?? '')}</p>
 
 <div class="sum">
-  <span class="stat"><b>${findings.length}</b> findings</span>
+  <span class="stat"><b>${problems}</b> problems</span>
+  <span class="stat"><b>${findings.length}</b> elements</span>
   <span class="stat p1"><b>${n('P1')}</b> P1</span>
   <span class="stat p2"><b>${n('P2')}</b> P2</span>
   <span class="stat p3"><b>${n('P3')}</b> P3</span>
   ${suppressed.length ? `<span class="stat"><b>${suppressed.length}</b> by design</span>` : ''}
   <span class="spacer"></span>
-  <a class="btn sec" href="/r/${id}/review.html" download>Designer report</a>
-  <a class="btn sec" href="/r/${id}/report.html" download>Developer report</a>
-  <a class="btn sec" href="/r/${id}/findings.csv" download>Findings (CSV)</a>
+  <div class="menu" id="dl">
+    <button class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="dlpop">Download</button>
+    <div class="pop" id="dlpop" role="menu">
+      <a role="menuitem" href="/r/${id}/review.html" download>
+        <b>Designer review</b><span>Findings marked on the page, grouped by concern, in plain language.</span></a>
+      <a role="menuitem" href="/r/${id}/report.html" download>
+        <b>Developer report</b><span>Selectors, properties and exact values, filterable.</span></a>
+      <hr>
+      <a role="menuitem" href="/r/${id}/findings.csv" download>
+        <b>Findings (CSV)</b><span>One row per element. Opens in Excel or Sheets for triage.</span></a>
+    </div>
+  </div>
 </div>
 
 <div class="panes">
@@ -320,7 +403,7 @@ export function results(id, result, meta, images, mode) {
 
 ${findings.length
   ? `<table><thead><tr><th>Severity</th><th>Element</th><th>Finding</th></tr></thead><tbody>${rows}</tbody></table>
-     <p class="lede" style="margin-top:12px"><span id="shown">${findings.length}</span> of ${findings.length} shown</p>`
+     <p class="lede" style="margin-top:12px"><span id="shown">${findings.length}</span> of ${findings.length} elements shown · the designer review folds these into ${problems} problems</p>`
   : `<p class="none">No findings. Either the page matches your tokens, or the tokens are too loose to catch anything.</p>
      <span id="shown" hidden></span>`}
 
@@ -337,6 +420,13 @@ function apply(){const needle=q.value.trim().toLowerCase(),c=sel.value;let k=0;
 btns.forEach(b=>b.addEventListener('click',()=>{sev=b.dataset.sev;
   btns.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));apply()}));
 sel.addEventListener('change',apply); q.addEventListener('input',apply);
+const dl=document.getElementById('dl'), dlb=dl.querySelector('button');
+const setOpen=v=>{dl.dataset.open=String(v);dlb.setAttribute('aria-expanded',String(v))};
+dlb.addEventListener('click',e=>{e.stopPropagation();setOpen(dl.dataset.open!=='true')});
+document.addEventListener('click',e=>{if(!dl.contains(e.target))setOpen(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(false)});
+dl.querySelectorAll('.pop a').forEach(a=>a.addEventListener('click',()=>setOpen(false)));
+
 const toast=document.getElementById('toast');
 document.addEventListener('click',e=>{const b=e.target.closest('.sel');if(!b)return;
   navigator.clipboard?.writeText(b.textContent.trim()).then(()=>{

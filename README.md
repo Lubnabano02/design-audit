@@ -24,6 +24,8 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 
 **Fetch** — pulls the matching frame from Figma via the REST API, so the intended design sits next to the built one.
 
+**Fold** — findings that say exactly the same thing become one problem that lists every element it affects. On the demo site that turns 49 findings into 22 decisions. The developer report and the CSV still list every element, because each one has to be fixed.
+
 **Check** — runs rules over the captured styles:
 
 | Check | What it catches |
@@ -132,7 +134,7 @@ Results arrive as a page you can filter, with both reports one click away:
 
 | File | Who it's for |
 |---|---|
-| `review.html` | **The designer.** Findings drawn on the screenshot, grouped by design concern — readability, colour, type, spacing, touch targets — in plain language. Colours shown as swatches, type sizes rendered, failing text displayed in the colours that are failing. Hover a finding to light up where it is on the page. Selectors are tucked into a "for your developer" line. |
+| `review.html` | **The designer.** One card per *problem*, not per element — nine elements using the wrong font is one decision, not nine. Grouped by concern, in plain language, with colours shown as swatches, type sizes rendered, and failing text displayed in the colours that are failing. Hover a finding to light up every place it appears. Selectors are tucked into a "for your developer" line. |
 | `report.html` | **The developer.** Selectors, properties, measured against expected, filterable, with the Figma frame beside the build. |
 | `findings.csv` | **Triage.** One row per finding with severity, check, element, property, value and expected. Opens in Excel or Sheets for assigning work. Suppressed findings carry their reason, so a decision stays visible. |
 
@@ -213,7 +215,6 @@ Being honest about the edges, because a tool that overstates itself wastes your 
 
 - **No pixel diffing.** It downloads the Figma frame and puts it beside the build capture, but does not compare them automatically. Overlay comparison is genuinely hard to get right — anti-aliasing, font rendering and dynamic content produce enough false positives to drown the real findings. The rule checks are more useful per unit of effort, which is why they came first.
 - **The Figma download path has not been run against the live API.** Everything else has: the capture, the checks, the HTML report and the local UI were all run end to end against a public site, and the screenshots above are that real output. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
-- **One element can produce several findings.** A link inside a paragraph that both fail contrast are reported separately, because both genuinely render failing text. Correct, but it can make two problems look like five.
 - **The local UI audits one page at a time.** Multi-screen runs still need a config file.
 - **Results live in memory.** Downloads stay available while the server is up; stopping it clears them.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.

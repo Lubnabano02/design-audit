@@ -7,6 +7,8 @@
  * and sizes rendered rather than printed as hex.
  */
 
+import { collapseFindings, collapseStats } from './collapse.mjs';
+
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -143,6 +145,8 @@ section{margin:0 0 34px}
 .box.ok{border-color:var(--ok);border-style:solid}
 .dev{margin:9px 0 0;font-size:11.5px;color:var(--ink-3)}
 .dev code{font-family:var(--mono);word-break:break-all;color:var(--ink-3)}
+.more{color:var(--ink-3)}
+.affects{color:var(--p3);font-size:12.5px;margin-top:3px}
 .none{padding:46px 0;text-align:center;color:var(--ink-3)}
 footer{margin:40px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
 footer a{color:var(--ink-2)}
@@ -154,22 +158,27 @@ footer a{color:var(--ink-2)}
  * @param {{build?:string|null}} images  data URIs
  */
 export function toDesignerHTML(result, meta = {}, images = {}) {
-  const findings = result.findings ?? [];
+  const findings = collapseFindings(result.findings ?? []);
+  const stats = collapseStats(findings);
   const vw = meta.viewport?.width ?? 1440;
   const vh = meta.viewport?.height ?? 900;
 
-  // Number every finding, then mark the ones that fall inside the capture.
   const numbered = findings.map((f, i) => ({ ...f, n: i + 1 }));
-  const onShot = numbered.filter(f => f.rect && f.rect.width > 0 && f.rect.y < vh && f.rect.x < vw);
-  const offShot = numbered.length - onShot.length;
 
-  const markers = onShot.map(f => {
-    const left = (f.rect.x / vw) * 100, top = (f.rect.y / vh) * 100;
-    const w = (Math.max(f.rect.width, 6) / vw) * 100, h = (Math.max(f.rect.height, 6) / vh) * 100;
+  // Mark every element a problem affects, all sharing the problem's number.
+  const inShot = r => r && r.width > 0 && r.y < vh && r.x < vw;
+  let marked = 0, hidden = 0;
+  const markers = numbered.flatMap(f => (f.occurrences ?? []).map((o, i) => {
+    if (!inShot(o.rect)) { hidden++; return ''; }
+    marked++;
+    const left = (o.rect.x / vw) * 100, top = (o.rect.y / vh) * 100;
+    const w = (Math.max(o.rect.width, 6) / vw) * 100, h = (Math.max(o.rect.height, 6) / vh) * 100;
     return `<span class="mk" data-s="${esc(f.severity)}" data-n="${f.n}" title="${esc(plain(f).headline)}"
       style="left:${left.toFixed(2)}%;top:${top.toFixed(2)}%;width:${w.toFixed(2)}%;height:${h.toFixed(2)}%"
-      ><i>${f.n}</i></span>`;
-  }).join('');
+      >${i === 0 ? `<i>${f.n}</i>` : ''}</span>`;
+  })).join('');
+  const onShot = { length: marked };
+  const offShot = hidden;
 
   const sections = GROUPS.map(g => {
     const items = numbered.filter(f => f.check === g.id);
@@ -184,8 +193,10 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
           <div class="body">
             <p class="hl">${esc(p.headline)}</p>
             ${p.detail ? `<p class="dt">${esc(p.detail)}</p>` : ''}
+            ${f.count > 1 ? `<p class="dt affects">Affects ${f.count} places on the page.</p>` : ''}
             ${evidence(f)}
-            <p class="dev">For your developer: <code>${esc(f.selector)}</code></p>
+            <p class="dev">For your developer: <code>${esc(f.selector)}</code>${
+              f.count > 1 ? ` <span class="more">+${f.count - 1} more</span>` : ''}</p>
           </div></div>`;
       }).join('')}
     </section>`;
@@ -202,6 +213,7 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
 
 <div class="stats">
   <span class="stat"><b>${findings.length}</b> things to look at</span>
+  ${stats.folded ? `<span class="stat"><b>${stats.elements}</b> elements affected</span>` : ''}
   ${GROUPS.map(g => {
     const c = findings.filter(f => f.check === g.id).length;
     return c ? `<span class="stat"><b>${c}</b> ${esc(g.title.toLowerCase())}</span>` : '';
@@ -209,23 +221,22 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
 </div>
 
 ${images.build ? `<div class="shot"><img src="${images.build}" alt="The page, with findings marked">${markers}</div>
-<p class="caption">${onShot.length} of ${numbered.length} marked on the screenshot${
-  offShot ? ` · ${offShot} sit below the fold and are listed but not drawn` : ''}. Hover a finding below to light up where it is.</p>` : ''}
+<p class="caption">${marked} element${marked === 1 ? '' : 's'} marked${
+  offShot ? ` · ${offShot} sit below the fold and are listed but not drawn` : ''}. Hover a finding to light up every place it appears.</p>` : ''}
 
 ${findings.length ? sections
   : `<p class="none">Nothing to flag. Either the page matches your system, or the tokens are too loose to catch anything — worth knowing which.</p>`}
 
 <script>
-const marks = new Map([...document.querySelectorAll('.mk')].map(m => [m.dataset.n, m]));
 for (const item of document.querySelectorAll('.item')) {
-  const m = marks.get(item.dataset.n);
-  if (!m) continue;
-  const on = v => { m.classList.toggle('on', v); item.classList.toggle('on', v); };
+  const marks = [...document.querySelectorAll('.mk[data-n="' + item.dataset.n + '"]')];
+  if (!marks.length) continue;
+  const on = v => { marks.forEach(m => m.classList.toggle('on', v)); item.classList.toggle('on', v); };
   item.addEventListener('mouseenter', () => on(true));
   item.addEventListener('mouseleave', () => on(false));
   item.addEventListener('click', () => {
-    m.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    on(true); setTimeout(() => on(false), 1600);
+    marks[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    on(true); setTimeout(() => on(false), 1800);
   });
 }
 </script>
