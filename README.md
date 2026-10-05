@@ -12,7 +12,9 @@ It is not tied to any particular product. Point it at a URL, give it your tokens
 node src/cli.mjs serve      # → http://127.0.0.1:4000
 ```
 
-<img src="docs/form.png" width="520" alt="The run form: website URL, Figma frame link, Figma token, and an advanced section">
+<img src="docs/ui-landing.png" width="760" alt="Landing page with two modes: Audit a page, and Compare with Figma">
+
+Two modes. **Audit a page** checks a live page against your tokens. **Compare with Figma** does the same and puts the frame beside the build.
 
 ---
 
@@ -32,7 +34,7 @@ node src/cli.mjs serve      # → http://127.0.0.1:4000
 | `contrast` | Text below WCAG AA, measured against the background the text **actually renders on** — resolved by walking up the DOM through transparent ancestors, and compositing translucent colours before measuring |
 | `targetSize` | Interactive controls below the minimum target size (WCAG 2.2 SC 2.5.8) |
 
-**Report** — a self-contained HTML page for people, Markdown and JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
+**Report** — a self-contained HTML page and a findings CSV for people, Markdown and JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
 
 ---
 
@@ -118,9 +120,22 @@ Runs the checks against a bundled fixture with deliberately planted problems, an
 node src/cli.mjs serve
 ```
 
-Opens a local page on `127.0.0.1:4000`. Paste the page URL, optionally a Figma frame link and a token, press **Run audit**, and the report renders in the browser.
+Leave that terminal open and go to **http://127.0.0.1:4000**. Ctrl+C stops it.
 
-It binds to localhost only and holds the Figma token in memory for the length of the run — it is never written to disk. That is the reason this runs on your machine instead of being hosted somewhere.
+<img src="docs/ui-compare.png" width="520" alt="The Compare with Figma form">
+
+Results arrive as a page you can filter, with both reports one click away:
+
+<img src="docs/ui-results.png" width="760" alt="Results page with summary counts, download buttons, build and Figma panes, and a filterable findings table">
+
+**Two downloads per run:**
+
+| File | What it's for |
+|---|---|
+| `report.html` | The readable report. Self-contained — images embedded — so you can send it to someone on its own. |
+| `findings.csv` | One row per finding, with severity, check, element, property, value and expected. Opens straight in Excel or Sheets for triage and assignment. Suppressed findings are included with their reason, so a decision stays visible. |
+
+It binds to localhost only and holds the Figma token in memory for the length of the run — never written to disk. That is the reason this runs on your machine instead of being hosted somewhere.
 
 ## Use it on your own project
 
@@ -197,6 +212,7 @@ Being honest about the edges, because a tool that overstates itself wastes your 
 - **The Figma download path has not been run against the live API.** Everything else has: the capture, the checks, the HTML report and the local UI were all run end to end against a public site, and the screenshots above are that real output. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
 - **One element can produce several findings.** A link inside a paragraph that both fail contrast are reported separately, because both genuinely render failing text. Correct, but it can make two problems look like five.
 - **The local UI audits one page at a time.** Multi-screen runs still need a config file.
+- **Results live in memory.** Downloads stay available while the server is up; stopping it clears them.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.
 - **Captures one state per screen.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Capturing several states per screen would need the config to describe them as separate entries.
 - **Not tested against every auth setup.** `storageState` covers the common case of a saved logged-in session. SSO flows that re-challenge will need their own handling.
