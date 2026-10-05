@@ -5,6 +5,7 @@ import { loadConfig, loadTokens, loadExceptions } from './config.mjs';
 import { runChecks } from './checks/index.mjs';
 import { applyExceptions, validateExceptions } from './exceptions.mjs';
 import { toMarkdown, toJSON } from './report.mjs';
+import { toHTML, imageDataUri } from './report-html.mjs';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -25,8 +26,11 @@ design-audit — compare a running UI against its Figma source of truth
   design-audit capture  --config <file>
                         Capture only. Writes snapshot.json and build.png per screen.
 
+  design-audit serve    [--port 4000]
+                        Open a local page where you paste a URL and a Figma link.
+
 Options
-  --format md|json      Report format for "check" (default: md)
+  --format md|json|html Report format for "check" (default: md)
   --out <dir>           Where to write reports
 
 Environment
@@ -53,12 +57,15 @@ async function cmdCheck() {
 
   const result = applyExceptions(runChecks(snapshot, tokens, { checks: {} }), exceptions);
   const meta = { project: snapshot.screen, baseUrl: snapshot.url };
-  const output = flag('format') === 'json' ? toJSON(result, meta) : toMarkdown(result, meta);
+  const format = flag('format') ?? 'md';
+  const output = format === 'json' ? toJSON(result, meta)
+               : format === 'html' ? toHTML(result, meta, {})
+               : toMarkdown(result, meta);
 
   const outDir = flag('out');
   if (outDir) {
     await mkdir(outDir, { recursive: true });
-    const file = path.join(outDir, flag('format') === 'json' ? 'report.json' : 'report.md');
+    const file = path.join(outDir, `report.${format === 'json' ? 'json' : format === 'html' ? 'html' : 'md'}`);
     await writeFile(file, output);
     console.log(`Wrote ${file} — ${result.findings.length} findings, ${result.suppressed.length} suppressed`);
   } else {
@@ -103,8 +110,15 @@ async function cmdCapture(alsoCheck) {
   const all = { elements: captures.flatMap(c => c.snapshot.elements) };
   const result = applyExceptions(runChecks(all, tokens, config), exceptions);
 
-  await writeFile(path.join(outDir, 'report.md'), toMarkdown(result, { project: path.basename(config._dir), baseUrl: config.baseUrl }));
+  const meta = { project: path.basename(config._dir), baseUrl: config.baseUrl };
+  await writeFile(path.join(outDir, 'report.md'), toMarkdown(result, meta));
   await writeFile(path.join(outDir, 'report.json'), toJSON(result, { baseUrl: config.baseUrl }));
+
+  const first = config.screens[0];
+  await writeFile(path.join(outDir, 'report.html'), toHTML(result, meta, {
+    build: await imageDataUri(path.join(outDir, first.name, 'build.png')),
+    figma: await imageDataUri(path.join(outDir, first.name, 'figma.png')),
+  }));
   console.log(`\n${result.findings.length} findings (${result.suppressed.length} suppressed) — ${path.join(outDir, 'report.md')}`);
   process.exitCode = result.findings.some(f => f.severity === 'P1') ? 1 : 0;
 }
@@ -113,6 +127,10 @@ try {
   if (command === 'check') await cmdCheck();
   else if (command === 'capture') await cmdCapture(false);
   else if (command === 'run') await cmdCapture(true);
+  else if (command === 'serve') {
+    const { serve } = await import('./serve.mjs');
+    serve({ port: Number(flag('port')) || 4000 });
+  }
   else { console.log(USAGE); process.exit(command ? 1 : 0); }
 } catch (err) {
   fail(err.message);

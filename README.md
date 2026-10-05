@@ -6,6 +6,14 @@ Design systems drift. A colour gets hardcoded, a font size lands between two ste
 
 It is not tied to any particular product. Point it at a URL, give it your tokens, and it works.
 
+**Two ways to use it.** Paste a URL into a local page and press a button, or wire the CLI into CI.
+
+```bash
+node src/cli.mjs serve      # → http://127.0.0.1:4000
+```
+
+<img src="docs/form.png" width="520" alt="The run form: website URL, Figma frame link, Figma token, and an advanced section">
+
 ---
 
 ## What it does
@@ -24,7 +32,7 @@ It is not tied to any particular product. Point it at a URL, give it your tokens
 | `contrast` | Text below WCAG AA, measured against the background the text **actually renders on** — resolved by walking up the DOM through transparent ancestors, and compositing translucent colours before measuring |
 | `targetSize` | Interactive controls below the minimum target size (WCAG 2.2 SC 2.5.8) |
 
-**Report** — Markdown for people, JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
+**Report** — a self-contained HTML page for people, Markdown and JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
 
 ---
 
@@ -58,10 +66,14 @@ Suppressed findings still appear in the report, under *By design*, with their re
 
 ## Example output
 
-Run against the public [TodoMVC demo](https://demo.playwright.dev/todomvc) with the example tokens — 15 elements, 55 findings:
+Every run writes `report.html` — one self-contained file with the build capture and the Figma frame side by side, filterable findings, and click-to-copy selectors. Images are embedded, so you can send the file to someone on its own.
+
+<img src="docs/report.png" width="760" alt="The HTML report: summary chips, build and Figma panes, and a filterable findings table">
+
+There is also `report.md` and `report.json` for CI. Run against the public [TodoMVC demo](https://demo.playwright.dev/todomvc) with the example tokens — 15 elements, 49 findings:
 
 ```
-**55 findings** — 6 P1, 35 P2, 14 P3
+**49 findings** — 6 P1, 29 P2, 14 P3
 
 ## contrast — 6
 
@@ -70,11 +82,11 @@ Run against the public [TodoMVC demo](https://demo.playwright.dev/todomvc) with 
 | P1 | todomvc | `body > footer.info > p:nth-of-type(2) > a`    | contrast 1.69:1 is below 4.5:1 for normal text |
 | P1 | todomvc | `section.todoapp > div > header.header > h1`   | contrast 1.27:1 is below 3:1 for large text    |
 
-## colorTokens — 17
+## colorTokens — 11
 
 | Severity | Screen | Element | Finding |
 |---|---|---|---|
-| P2 | todomvc | `input.new-todo` | text colour #4D4D4D is not a palette token (nearest #343A40, ΔE 6.7) |
+| P2 | todomvc | `section.todoapp > div > header.header > input.new-todo` | text colour #4D4D4D is not a palette token (nearest #343A40, ΔE 9.8) |
 ```
 
 Selectors carry `:nth-of-type` where siblings share a tag, so each row points at one element you can paste into devtools.
@@ -97,6 +109,16 @@ npm run demo
 ```
 
 Runs the checks against a bundled fixture with deliberately planted problems, and prints the report. No browser, no Figma account, no config.
+
+## Use it without the command line
+
+```bash
+node src/cli.mjs serve
+```
+
+Opens a local page on `127.0.0.1:4000`. Paste the page URL, optionally a Figma frame link and a token, press **Run audit**, and the report renders in the browser.
+
+It binds to localhost only and holds the Figma token in memory for the length of the run — it is never written to disk. That is the reason this runs on your machine instead of being hosted somewhere.
 
 ## Use it on your own project
 
@@ -170,7 +192,9 @@ Start with contrast as the only P1. Promoting more checks to P1 before the backl
 Being honest about the edges, because a tool that overstates itself wastes your afternoon:
 
 - **No pixel diffing.** It downloads the Figma frame and puts it beside the build capture, but does not compare them automatically. Overlay comparison is genuinely hard to get right — anti-aliasing, font rendering and dynamic content produce enough false positives to drown the real findings. The rule checks are more useful per unit of effort, which is why they came first.
-- **The Figma download path has not been run against the live API.** The capture-and-check pipeline has: it was run end to end against a public site, and the output in [Example output](#example-output) is real. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
+- **The Figma download path has not been run against the live API.** Everything else has: the capture, the checks, the HTML report and the local UI were all run end to end against a public site, and the screenshots above are that real output. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
+- **One element can produce several findings.** A link inside a paragraph that both fail contrast are reported separately, because both genuinely render failing text. Correct, but it can make two problems look like five.
+- **The local UI audits one page at a time.** Multi-screen runs still need a config file.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.
 - **Captures one state per screen.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Capturing several states per screen would need the config to describe them as separate entries.
 - **Not tested against every auth setup.** `storageState` covers the common case of a saved logged-in session. SSO flows that re-challenge will need their own handling.

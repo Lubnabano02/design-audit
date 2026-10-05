@@ -18,6 +18,10 @@ export default {
 
     for (const el of snapshot.elements) {
       for (const [prop, label] of PROPS) {
+        // A text colour on an element with no text of its own is inherited,
+        // not chosen — reporting it buries the elements that actually show it.
+        if (prop === 'color' && !el.text) continue;
+
         const raw = el.styles?.[prop];
         const parsed = parseColor(raw);
         if (!parsed || parsed.a === 0) continue;

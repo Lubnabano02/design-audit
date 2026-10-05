@@ -9,6 +9,9 @@ audit-runs/
 *.png
 *.jpg
 
+# ...except the README screenshots.
+!docs/*.png
+
 # Your real project config may contain internal URLs and file keys.
 # Commit only the .example.json files.
 design-audit.config.json
