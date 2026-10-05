@@ -1,0 +1,16 @@
+{
+  "name": "design-audit",
+  "version": "0.1.0",
+  "description": "Compare a running web UI against its Figma source of truth, and report where they diverge.",
+  "type": "module",
+  "bin": { "design-audit": "./src/cli.mjs" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "demo": "node src/cli.mjs check --snapshot examples/snapshot.fixture.json --tokens examples/tokens.example.json --exceptions examples/exceptions.example.json"
+  },
+  "engines": { "node": ">=18" },
+  "keywords": ["design-system", "figma", "design-qa", "visual-regression", "accessibility", "design-tokens"],
+  "license": "MIT",
+  "peerDependencies": { "playwright": ">=1.40.0" },
+  "peerDependenciesMeta": { "playwright": { "optional": true } }
+}

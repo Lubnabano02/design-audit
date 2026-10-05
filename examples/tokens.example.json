@@ -1,0 +1,31 @@
+{
+  "$comment": "Your design system, expressed as the rules the build is checked against.",
+  "color": {
+    "palette": [
+      "#FFFFFF", "#F8F9FA", "#E9ECEF", "#CED4DA",
+      "#6C757D", "#343A40", "#212529",
+      "#0D6EFD", "#198754", "#DC3545", "#FFC107"
+    ],
+    "toleranceDeltaE": 3,
+    "$comment": "toleranceDeltaE: how far a rendered colour may sit from the nearest token before it is reported."
+  },
+  "type": {
+    "families": ["Inter", "system-ui"],
+    "sizesPx": [12, 14, 16, 18, 20, 24, 32, 40],
+    "weights": [400, 500, 600, 700]
+  },
+  "spacing": {
+    "basePx": 4,
+    "$comment": "Padding and margin are expected to be multiples of basePx."
+  },
+  "contrast": {
+    "minNormalText": 4.5,
+    "minLargeText": 3.0,
+    "largeTextPx": 24,
+    "largeTextBoldPx": 18.66
+  },
+  "targetSize": {
+    "minPx": 24,
+    "$comment": "WCAG 2.2 SC 2.5.8 (AA) is 24x24. Use 44 for SC 2.5.5 (AAA)."
+  }
+}

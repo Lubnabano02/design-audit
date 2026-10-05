@@ -1,0 +1,19 @@
+# Never commit these.
+.auth/
+*.storageState.json
+.env
+.env.*
+
+# Run output: captures, snapshots, reports.
+audit-runs/
+*.png
+*.jpg
+
+# Your real project config may contain internal URLs and file keys.
+# Commit only the .example.json files.
+design-audit.config.json
+tokens.json
+exceptions.json
+
+node_modules/
+.DS_Store

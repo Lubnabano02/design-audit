@@ -1,0 +1,40 @@
+{
+  "baseUrl": "https://demo.playwright.dev",
+  "outDir": "./audit-runs",
+  "tokensFile": "./examples/tokens.example.json",
+  "exceptionsFile": "./examples/exceptions.example.json",
+  "figma": {
+    "fileKey": "env:FIGMA_FILE_KEY",
+    "token": "env:FIGMA_TOKEN"
+  },
+  "viewport": { "width": 1440, "height": 900 },
+  "auth": {
+    "_comment": "Optional. Path to a Playwright storageState file. Never commit it.",
+    "storageState": ".auth/state.json"
+  },
+  "captureTimeoutMs": 30000,
+  "screens": [
+    {
+      "name": "todo-app",
+      "path": "/todomvc",
+      "figmaNodeId": "1:2",
+      "waitFor": "input.new-todo",
+      "interactions": [
+        {
+          "name": "add-item",
+          "action": "fill",
+          "selector": "input.new-todo",
+          "value": "Buy milk",
+          "expect": "input.new-todo"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "colorTokens": { "enabled": true, "severity": "P2" },
+    "typeScale":   { "enabled": true, "severity": "P2" },
+    "spacingGrid": { "enabled": true, "severity": "P3" },
+    "contrast":    { "enabled": true, "severity": "P1" },
+    "targetSize":  { "enabled": true, "severity": "P2" }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$comment": "Divergences that have been reviewed and approved. The runner drops any finding that matches one of these, so a settled decision never comes back as a new finding. Keep the reason and the approver: an exception without them is indistinguishable from a bug someone got tired of.",
+  "exceptions": [
+    {
+      "id": "EX-001",
+      "check": "colorTokens",
+      "match": { "screen": "todo-app", "value": "#4A90D9" },
+      "reason": "Third-party widget ships its own focus ring. Vendor will not expose it; replacing the widget is scheduled, not urgent.",
+      "approvedBy": "Design lead",
+      "approvedOn": "2026-01-15",
+      "expiresOn": "2026-12-31"
+    },
+    {
+      "id": "EX-002",
+      "check": "targetSize",
+      "match": { "screen": "todo-app", "selector": ".toggle-all" },
+      "reason": "Inline control inside a text row; the WCAG 2.5.8 inline exception applies.",
+      "approvedBy": "Accessibility review",
+      "approvedOn": "2026-02-02"
+    }
+  ]
+}
