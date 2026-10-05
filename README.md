@@ -97,10 +97,12 @@ Selectors carry `:nth-of-type` where siblings share a tag, so each row points at
 git clone https://github.com/Lubnabano02/design-audit.git
 cd design-audit
 npm install
-npx playwright install chromium   # only needed for capture
+npx playwright install chromium
 ```
 
-Node 18+. Playwright is an optional peer dependency — the checks and reports run without it.
+Node 18+. `npm install` brings in Playwright; the second line downloads the browser it drives (~150 MB, once).
+
+If you only want the rule checks and not the page capture, `npm install` alone is enough — `npm run demo` and `design-audit check` work without a browser.
 
 ## Try it without setting anything up
 
