@@ -15,6 +15,7 @@ import { runChecks } from './checks/index.mjs';
 import { applyExceptions } from './exceptions.mjs';
 import { toHTML, imageDataUri } from './report-html.mjs';
 import { toCSV } from './report-csv.mjs';
+import { toDesignerHTML } from './report-designer.mjs';
 import { normaliseNodeId } from './figma.mjs';
 import { landing, form, results, DEFAULT_TOKENS } from './ui.mjs';
 
@@ -121,6 +122,7 @@ async function doRun(input) {
       images,
       result,
       html: toHTML(result, meta, images),
+      review: toDesignerHTML(result, { ...meta, viewport: { width: w, height: h } }, images),
       csv: toCSV(result, meta),
       notes: snapshot.notes ?? [],
     };
@@ -145,13 +147,17 @@ export function serve({ port = 4000 } = {}) {
         if (route === '/audit') return send(200, form('audit'));
         if (route === '/compare') return send(200, form('compare'));
 
-        const m = route.match(/^\/r\/([a-z0-9]+)(?:\/(report\.html|findings\.csv))?$/i);
+        const m = route.match(/^\/r\/([a-z0-9]+)(?:\/(report\.html|review\.html|findings\.csv))?$/i);
         if (m) {
           const run = runs.get(m[1]);
           if (!run) return send(404, form('audit', { error: 'That result has expired. Runs are kept only while the server is up.' }));
           if (m[2] === 'report.html') {
             return send(200, run.html, 'text/html; charset=utf-8',
               { 'content-disposition': `attachment; filename="design-audit-${run.meta.project}.html"` });
+          }
+          if (m[2] === 'review.html') {
+            return send(200, run.review, 'text/html; charset=utf-8',
+              { 'content-disposition': `attachment; filename="design-review-${run.meta.project}.html"` });
           }
           if (m[2] === 'findings.csv') {
             return send(200, run.csv, 'text/csv; charset=utf-8',

@@ -36,6 +36,7 @@ export default {
           severity: opts.severity ?? 'P2',
           screen: el.screen,
           selector: el.selector,
+          rect: el.rect,
           message: `${label} ${toHex(solid)} is not a palette token (nearest ${near.token}, ΔE ${near.distance.toFixed(1)})`,
           detail: { property: prop, value: toHex(solid), nearest: near.token, deltaE: +near.distance.toFixed(2) },
         });

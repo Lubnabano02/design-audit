@@ -296,8 +296,9 @@ export function results(id, result, meta, images, mode) {
   <span class="stat p3"><b>${n('P3')}</b> P3</span>
   ${suppressed.length ? `<span class="stat"><b>${suppressed.length}</b> by design</span>` : ''}
   <span class="spacer"></span>
-  <a class="btn sec" href="/r/${id}/report.html" download>Download report (HTML)</a>
-  <a class="btn sec" href="/r/${id}/findings.csv" download>Download findings (CSV)</a>
+  <a class="btn sec" href="/r/${id}/review.html" download>Designer report</a>
+  <a class="btn sec" href="/r/${id}/report.html" download>Developer report</a>
+  <a class="btn sec" href="/r/${id}/findings.csv" download>Findings (CSV)</a>
 </div>
 
 <div class="panes">

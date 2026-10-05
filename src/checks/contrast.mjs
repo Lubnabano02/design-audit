@@ -35,6 +35,7 @@ export default {
         severity: opts.severity ?? 'P1',
         screen: el.screen,
         selector: el.selector,
+        rect: el.rect,
         message: `contrast ${ratio.toFixed(2)}:1 is below ${required}:1 for ${isLarge ? 'large' : 'normal'} text`,
         detail: {
           ratio: +ratio.toFixed(2), required, fontSize: size, fontWeight: weight,

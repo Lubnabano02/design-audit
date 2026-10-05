@@ -34,7 +34,7 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 | `contrast` | Text below WCAG AA, measured against the background the text **actually renders on** — resolved by walking up the DOM through transparent ancestors, and compositing translucent colours before measuring |
 | `targetSize` | Interactive controls below the minimum target size (WCAG 2.2 SC 2.5.8) |
 
-**Report** — a self-contained HTML page and a findings CSV for people, Markdown and JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
+**Report** — a designer review and a developer report as self-contained HTML, a findings CSV for triage, and Markdown plus JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
 
 ---
 
@@ -128,12 +128,15 @@ Results arrive as a page you can filter, with both reports one click away:
 
 <img src="docs/ui-results.png" width="760" alt="Results page with summary counts, download buttons, build and Figma panes, and a filterable findings table">
 
-**Two downloads per run:**
+**Three downloads per run — two audiences, not two file types:**
 
-| File | What it's for |
+| File | Who it's for |
 |---|---|
-| `report.html` | The readable report. Self-contained — images embedded — so you can send it to someone on its own. |
-| `findings.csv` | One row per finding, with severity, check, element, property, value and expected. Opens straight in Excel or Sheets for triage and assignment. Suppressed findings are included with their reason, so a decision stays visible. |
+| `review.html` | **The designer.** Findings drawn on the screenshot, grouped by design concern — readability, colour, type, spacing, touch targets — in plain language. Colours shown as swatches, type sizes rendered, failing text displayed in the colours that are failing. Hover a finding to light up where it is on the page. Selectors are tucked into a "for your developer" line. |
+| `report.html` | **The developer.** Selectors, properties, measured against expected, filterable, with the Figma frame beside the build. |
+| `findings.csv` | **Triage.** One row per finding with severity, check, element, property, value and expected. Opens in Excel or Sheets for assigning work. Suppressed findings carry their reason, so a decision stays visible. |
+
+<img src="docs/ui-designer-report.png" width="760" alt="The designer report: findings marked on the screenshot, grouped by design concern, with colour swatches and rendered type">
 
 It binds to localhost only and holds the Figma token in memory for the length of the run — never written to disk. That is the reason this runs on your machine instead of being hosted somewhere.
 
@@ -184,7 +187,7 @@ export FIGMA_FILE_KEY=...
 node src/cli.mjs run --config design-audit.config.json
 ```
 
-Writes `audit-runs/<date>/<screen>/build.png`, `figma.png`, `snapshot.json`, and a report at the run root.
+Writes `audit-runs/<date>/<screen>/build.png`, `figma.png`, `snapshot.json`, and `review.html`, `report.html`, `report.md`, `report.json` at the run root.
 
 ---
 

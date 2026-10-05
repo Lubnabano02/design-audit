@@ -23,7 +23,7 @@ export default {
       if (!offenders.length) continue;
 
       findings.push({
-        check: this.id, severity: opts.severity ?? 'P3', screen: el.screen, selector: el.selector,
+        check: this.id, severity: opts.severity ?? 'P3', screen: el.screen, selector: el.selector, rect: el.rect,
         message: `${offenders.map(([p, v]) => `${p} ${+v.toFixed(2)}px`).join(', ')} — not a multiple of ${base}px`,
         detail: { base, offenders: Object.fromEntries(offenders) },
       });

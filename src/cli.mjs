@@ -6,6 +6,7 @@ import { runChecks } from './checks/index.mjs';
 import { applyExceptions, validateExceptions } from './exceptions.mjs';
 import { toMarkdown, toJSON } from './report.mjs';
 import { toHTML, imageDataUri } from './report-html.mjs';
+import { toDesignerHTML } from './report-designer.mjs';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -115,10 +116,13 @@ async function cmdCapture(alsoCheck) {
   await writeFile(path.join(outDir, 'report.json'), toJSON(result, { baseUrl: config.baseUrl }));
 
   const first = config.screens[0];
-  await writeFile(path.join(outDir, 'report.html'), toHTML(result, meta, {
+  const shots = {
     build: await imageDataUri(path.join(outDir, first.name, 'build.png')),
     figma: await imageDataUri(path.join(outDir, first.name, 'figma.png')),
-  }));
+  };
+  await writeFile(path.join(outDir, 'report.html'), toHTML(result, meta, shots));
+  await writeFile(path.join(outDir, 'review.html'),
+    toDesignerHTML(result, { ...meta, viewport: first.viewport ?? config.viewport }, shots));
   console.log(`\n${result.findings.length} findings (${result.suppressed.length} suppressed) — ${path.join(outDir, 'report.md')}`);
   process.exitCode = result.findings.some(f => f.severity === 'P1') ? 1 : 0;
 }

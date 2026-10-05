@@ -17,6 +17,7 @@ export default {
         severity: opts.severity ?? 'P2',
         screen: el.screen,
         selector: el.selector,
+        rect: el.rect,
         message: `target is ${Math.round(r.width)}x${Math.round(r.height)}px, below the ${min}x${min}px minimum`,
         detail: { width: +r.width.toFixed(1), height: +r.height.toFixed(1), minimum: min, role: el.role, label: el.text?.slice(0, 40) },
       });
