@@ -93,3 +93,20 @@ test('an empty match block is rejected as too broad', () => {
   const problems = validateExceptions({ exceptions: [{ id: 'EX-10', check: 'contrast', reason: 'r', approvedBy: 'a', match: {} }] });
   assert.ok(problems.some(p => /every/.test(p)));
 });
+
+test('Figma node ids are accepted as a bare id or a pasted URL', async () => {
+  const { normaliseNodeId } = await import('../src/figma.mjs');
+  assert.equal(normaliseNodeId('1:2'), '1:2');
+  assert.equal(normaliseNodeId('1-2'), '1:2');
+  assert.equal(normaliseNodeId('https://www.figma.com/design/ABC123/My-File?node-id=6415-307796'), '6415:307796');
+  assert.equal(normaliseNodeId('https://www.figma.com/design/ABC123/My-File?node-id=6415-307796&t=xyz'), '6415:307796');
+  assert.equal(normaliseNodeId(null), null);
+});
+
+test('element descriptions are unique among same-tag siblings', async () => {
+  // Guards the bug where three sibling <p> elements all described identically
+  // and the report looked like it was repeating itself.
+  const { collectStyles } = await import('../src/snapshot.mjs');
+  const src = collectStyles.toString();
+  assert.ok(/nth-of-type/.test(src), 'describe() must disambiguate same-tag siblings');
+});

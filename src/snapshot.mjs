@@ -10,17 +10,29 @@ export const collectStyles = () => {
   const INTERACTIVE_ROLES = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'option', 'slider', 'textbox']);
   const SKIP = new Set(['SCRIPT', 'STYLE', 'META', 'LINK', 'HEAD', 'NOSCRIPT', 'TITLE', 'SVG', 'PATH']);
 
-  /** A short, readable path — enough to find the element again by eye. */
+  /**
+   * A short, readable path — enough to find the element again by eye.
+   * Siblings of the same tag get an :nth-of-type, otherwise several distinct
+   * elements describe identically and the report looks like it is repeating itself.
+   */
   const describe = el => {
     const parts = [];
     let node = el;
     for (let depth = 0; node && node.nodeType === 1 && depth < 4; depth++) {
       let part = node.tagName.toLowerCase();
       if (node.id) { parts.unshift(`${part}#${node.id}`); break; }
+
       const cls = (node.getAttribute('class') || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
       if (cls.length) part += '.' + cls.join('.');
+
+      const parent = node.parentElement;
+      if (parent) {
+        const twins = Array.from(parent.children).filter(c => c.tagName === node.tagName);
+        if (twins.length > 1) part += `:nth-of-type(${twins.indexOf(node) + 1})`;
+      }
+
       parts.unshift(part);
-      node = node.parentElement;
+      node = parent;
     }
     return parts.join(' > ');
   };

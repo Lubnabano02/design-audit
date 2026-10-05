@@ -56,6 +56,29 @@ Suppressed findings still appear in the report, under *By design*, with their re
 
 ---
 
+## Example output
+
+Run against the public [TodoMVC demo](https://demo.playwright.dev/todomvc) with the example tokens — 15 elements, 55 findings:
+
+```
+**55 findings** — 6 P1, 35 P2, 14 P3
+
+## contrast — 6
+
+| Severity | Screen | Element | Finding |
+|---|---|---|---|
+| P1 | todomvc | `body > footer.info > p:nth-of-type(2) > a`    | contrast 1.69:1 is below 4.5:1 for normal text |
+| P1 | todomvc | `section.todoapp > div > header.header > h1`   | contrast 1.27:1 is below 3:1 for large text    |
+
+## colorTokens — 17
+
+| Severity | Screen | Element | Finding |
+|---|---|---|---|
+| P2 | todomvc | `input.new-todo` | text colour #4D4D4D is not a palette token (nearest #343A40, ΔE 6.7) |
+```
+
+Selectors carry `:nth-of-type` where siblings share a tag, so each row points at one element you can paste into devtools.
+
 ## Install
 
 ```bash
@@ -147,6 +170,7 @@ Start with contrast as the only P1. Promoting more checks to P1 before the backl
 Being honest about the edges, because a tool that overstates itself wastes your afternoon:
 
 - **No pixel diffing.** It downloads the Figma frame and puts it beside the build capture, but does not compare them automatically. Overlay comparison is genuinely hard to get right — anti-aliasing, font rendering and dynamic content produce enough false positives to drown the real findings. The rule checks are more useful per unit of effort, which is why they came first.
+- **The Figma download path has not been run against the live API.** The capture-and-check pipeline has: it was run end to end against a public site, and the output in [Example output](#example-output) is real. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.
 - **Captures one state per screen.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Capturing several states per screen would need the config to describe them as separate entries.
 - **Not tested against every auth setup.** `storageState` covers the common case of a saved logged-in session. SSO flows that re-challenge will need their own handling.
