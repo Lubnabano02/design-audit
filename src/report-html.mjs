@@ -76,6 +76,8 @@ td{padding:11px 10px;vertical-align:top}
   word-break:break-all;border:0;background:none;padding:0;text-align:left}
 .sel:hover{color:var(--accent)}
 .check{font-size:11px;color:var(--ink-3)}
+.times{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--ink-3);
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:1px 6px;vertical-align:1px}
 .none{padding:40px 0;text-align:center;color:var(--ink-3)}
 .sec{margin:0 0 30px}
 .sh{display:flex;align-items:baseline;gap:9px;margin:0 0 3px}
@@ -157,7 +159,7 @@ export function toHTML(result, meta = {}, images = {}) {
       <td><span class="sev ${esc(f.severity)}">${esc(f.severity)}</span></td>
       <td><button class="sel" title="Click to copy">${esc(f.selector)}</button>
           <div class="check">${esc(f.check)}${f.screen && f.screen !== '-' ? ' · ' + esc(f.screen) : ''}</div></td>
-      <td>${esc(f.message)}</td>
+      <td>${esc(f.message)}${f.times > 1 ? ` <span class="times">×${f.times}</span>` : ''}</td>
     </tr>`;
   };
 

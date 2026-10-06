@@ -12,7 +12,7 @@ const cell = v => {
 };
 
 const COLUMNS = [
-  'Severity', 'Status', 'Check', 'Screen', 'Element', 'Finding',
+  'Severity', 'Status', 'Check', 'Screen', 'Element', 'Finding', 'Times',
   'Property', 'Value', 'Expected', 'Exception', 'Reason', 'Approved by',
 ];
 
@@ -25,6 +25,7 @@ function row(f, status) {
     f.screen,
     f.selector,
     f.message,
+    f.times ?? 1,
     d.property ?? '',
     d.value ?? d.ratio ?? '',
     d.nearest ?? d.required ?? d.minimum ?? (Array.isArray(d.allowed) ? d.allowed.join(' | ') : ''),

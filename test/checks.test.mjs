@@ -196,3 +196,48 @@ test('draft runs stay out of the history', async () => {
   assert.equal(r.recorded, false);
   assert.equal(r.entry.draft, true);
 });
+
+test('byte-identical findings fold into one with a count', async () => {
+  const { collapseIdentical } = await import('../src/collapse.mjs');
+  const same = { check: 'errors', selector: 'main.js', message: 'Console warning: x', severity: 'P3' };
+  const folded = collapseIdentical([{ ...same }, { ...same }, { ...same }]);
+  assert.equal(folded.length, 1);
+  assert.equal(folded[0].times, 3);
+});
+
+test('findings on different elements never fold', async () => {
+  const { collapseIdentical } = await import('../src/collapse.mjs');
+  const a = { check: 'contrast', selector: 'h1', message: 'too faint', severity: 'P1' };
+  const b = { check: 'contrast', selector: 'p', message: 'too faint', severity: 'P1' };
+  const folded = collapseIdentical([a, b]);
+  assert.equal(folded.length, 2, 'two elements are two problems to fix');
+});
+
+test('grouping keys cannot collide across checks', async () => {
+  const { collapseFindings } = await import('../src/collapse.mjs');
+  // A separator that can appear inside a field would let these two merge.
+  const a = { check: 'contrast', selector: 'h1', message: 'x y', severity: 'P1', rect: {} };
+  const b = { check: 'contrast x', selector: 'h2', message: 'y', severity: 'P1', rect: {} };
+  assert.equal(collapseFindings([a, b]).length, 2, 'different checks must stay separate');
+});
+
+test('grouping keys survive adjacent-field ambiguity', async () => {
+  const { collapseFindings, collapseIdentical } = await import('../src/collapse.mjs');
+  // With naive concatenation these two produce the same key.
+  const a = { check: 'ab', selector: 's', message: 'c', severity: 'P1', rect: {} };
+  const b = { check: 'a', selector: 's', message: 'bc', severity: 'P1', rect: {} };
+  assert.equal(collapseFindings([a, b]).length, 2);
+  assert.equal(collapseIdentical([a, b]).length, 2);
+});
+
+test('no source file contains a NUL byte', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const dirs = ['src', 'src/checks', 'test'];
+  for (const d of dirs) {
+    for (const name of await readdir(path.join(root, d))) {
+      if (!name.endsWith('.mjs')) continue;
+      const buf = await readFile(path.join(root, d, name));
+      assert.equal(buf.includes(0), false, `${d}/${name} contains a NUL byte`);
+    }
+  }
+});

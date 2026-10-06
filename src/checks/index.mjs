@@ -5,6 +5,7 @@ import contrast from './contrast.mjs';
 import targetSize from './target-size.mjs';
 import crossScreen from './cross-screen.mjs';
 import { runtimeChecks, RUNTIME_IDS } from './runtime.mjs';
+import { collapseIdentical } from '../collapse.mjs';
 
 export const designChecks = [colorTokens, typeScale, spacingGrid, contrast, targetSize, crossScreen];
 export const checks = [...designChecks, ...runtimeChecks];
@@ -36,7 +37,9 @@ export function runChecks(snapshot, tokens, config = {}, ctx = {}) {
   }
 
   const rank = { P1: 0, P2: 1, P3: 2 };
-  return findings.sort((a, b) =>
+  // Fold exact repeats before anyone sees them: 34 copies of one console
+  // warning is one problem, and showing it 34 times discredits the report.
+  return collapseIdentical(findings).sort((a, b) =>
     (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9) ||
     a.check.localeCompare(b.check) ||
     a.selector.localeCompare(b.selector));

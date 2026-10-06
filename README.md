@@ -32,7 +32,11 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 
 **Fetch** — pulls the matching frame from Figma via the REST API, so the intended design sits next to the built one.
 
-**Fold** — findings that say exactly the same thing become one problem that lists every element it affects. On the demo site that turns 49 findings into 22 decisions. The developer report and the CSV still list every element, because each one has to be fixed.
+**Fold** — in two stages, because two different things get repeated.
+
+*Byte-identical* findings — same check, same element, same message — become one with a count. A console warning logged 34 times by one script is one thing to fix, and listing it 34 times discredits the whole report. Design findings are never byte-identical, since each carries a different selector, so this only ever folds genuine repeats.
+
+*Equivalent* findings — same problem on different elements — become one problem in the designer review that lists everywhere it appears. The developer report and the CSV keep them separate, because each element still needs changing.
 
 **Check** — two sets of rules, one per audience.
 
