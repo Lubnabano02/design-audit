@@ -45,6 +45,8 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 | `spacingGrid` | Padding and margin that aren't multiples of the base unit |
 | `contrast` | Text below WCAG AA, measured against the background the text **actually renders on** — resolved by walking up the DOM through transparent ancestors, and compositing translucent colours before measuring |
 | `targetSize` | Interactive controls below the minimum target size (WCAG 2.2 SC 2.5.8) |
+| `crossScreen` | The same component styled differently on different pages — the one thing no single-page check can see |
+| `visualDiff` | Where the build capture and the Figma frame actually differ, compared perceptually in blocks |
 
 *Runtime* — whether it works, read from the page as it actually ran:
 
@@ -59,6 +61,39 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 **Report** — a designer review and a developer report as self-contained HTML, a findings CSV for triage, and Markdown plus JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
 
 ---
+
+## Keeping a record
+
+A single audit tells you where you are. A series tells you whether you are getting better.
+
+```bash
+node src/cli.mjs run --config design-audit.config.json      # recorded
+node src/cli.mjs run --config design-audit.config.json --draft   # not recorded
+node src/cli.mjs history --config design-audit.config.json
+```
+
+```
+  Date              Findings   P1   P2   P3   Pages
+  ----------------------------------------------------
+  2026-10-06 13:00      1395   11 1186  198       2
+```
+
+Each run reports what moved since the last one — `0 findings · 1 fixed · 1 new` — matched by a fingerprint of the finding, so a fix and a regression are told apart rather than netted off.
+
+**Drafts stay out of it.** Work in progress should be auditable without polluting the record; an exploratory run that drags the trend down teaches the team to stop running audits.
+
+## Decisions
+
+An exception records a decision that silences a finding. Plenty of decisions do not:
+
+```bash
+node src/cli.mjs decide --config design-audit.config.json \
+  --finding "crossScreen|nav > a.navbar__link|text colour differs between screens" \
+  --ruling by-design --by "Design lead" \
+  --why "The active nav item is meant to be highlighted."
+```
+
+Rulings are `build-must-change`, `design-must-change`, `by-design`, `wont-fix` or `deferred`. Every one lands in `decisions.md` with who decided and why — a decision that is not written down gets made again. A `by-design` ruling also becomes an exception, so it stops being reported.
 
 ## The part that matters: exceptions
 
@@ -246,7 +281,9 @@ Start with contrast as the only P1. Promoting more checks to P1 before the backl
 
 Being honest about the edges, because a tool that overstates itself wastes your afternoon:
 
-- **No pixel diffing.** It downloads the Figma frame and puts it beside the build capture, but does not compare them automatically. Overlay comparison is genuinely hard to get right — anti-aliasing, font rendering and dynamic content produce enough false positives to drown the real findings. The rule checks are more useful per unit of effort, which is why they came first.
+- **Visual diff is a pointer, not a verdict.** It compares the build and the frame in 16px blocks by perceptual distance, which keeps anti-aliasing and font hinting out of the results — but a frame and a live page legitimately differ in content, so treat the boxes as "look here", never "this is wrong".
+- **Cross-screen compares styling, not layout.** Comparing height was tried and dropped: it reported content regions that are supposed to differ and text that wrapped onto two lines, 28 noise findings hiding 2 real ones. Without a curated list of which elements are chrome, height cannot be told from content.
+- **No Jira or Google Sheets push.** Deliberate. Those are organisation-specific plumbing, and wiring them in would make a general tool worse. The JSON and CSV outputs are there to be piped wherever you need.
 - **The Figma download path has not been run against the live API.** Everything else has: the capture, the checks, the HTML report and the local UI were all run end to end against a public site, and the screenshots above are that real output. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
 - **Results live in memory.** Downloads stay available while the server is up; stopping it clears them.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.

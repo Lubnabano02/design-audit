@@ -19,6 +19,7 @@ import { toDesignerHTML } from './report-designer.mjs';
 import { normaliseNodeId } from './figma.mjs';
 import { discover } from './crawl.mjs';
 import { auditImage, IMAGE_LIMITS } from './image-audit.mjs';
+import { compareVisually, renderDiffOverlay } from './visual-diff.mjs';
 import { readBody, parseMultipart, imageToDataUri } from './multipart.mjs';
 import { landing, form, results, DEFAULT_TOKENS } from './ui.mjs';
 
@@ -180,8 +181,19 @@ async function doRun(input) {
       }
     }
 
+    // Compare the frame with the build, where both exist.
+    let visual = null;
+    if (figmaImg) {
+      const diff = await compareVisually(browser, await imageDataUri(screenshot), figmaImg);
+      if (diff.ran) {
+        result.findings.push(...diff.findings);
+        const overlay = await renderDiffOverlay(browser, figmaImg, diff);
+        if (overlay) { figmaImg = overlay; visual = { changedShare: diff.changedShare, regions: diff.regions.length }; }
+      }
+    }
+
     const meta = {
-      project: target.hostname, baseUrl: input.url,
+      project: target.hostname, baseUrl: input.url, visual,
       viewport: { width: w, height: h }, pageHeight: snapshot.pageHeight,
       pages: ok.map(p => p.url), failed: pages.filter(p => p.failed),
       consent: ok[0]?.snapshot?.consent ?? null,

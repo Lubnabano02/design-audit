@@ -3,9 +3,10 @@ import typeScale from './type-scale.mjs';
 import spacingGrid from './spacing-grid.mjs';
 import contrast from './contrast.mjs';
 import targetSize from './target-size.mjs';
+import crossScreen from './cross-screen.mjs';
 import { runtimeChecks, RUNTIME_IDS } from './runtime.mjs';
 
-export const designChecks = [colorTokens, typeScale, spacingGrid, contrast, targetSize];
+export const designChecks = [colorTokens, typeScale, spacingGrid, contrast, targetSize, crossScreen];
 export const checks = [...designChecks, ...runtimeChecks];
 export { RUNTIME_IDS };
 export const byId = Object.fromEntries(checks.map(c => [c.id, c]));

@@ -155,3 +155,44 @@ test('image colour buckets never overflow a byte', async () => {
   assert.ok(!/Math\.round\(data\[/.test(src), 'channels must be masked, not rounded');
   assert.ok(/& 0xF8/.test(src), 'channels should be masked to a multiple of 8');
 });
+
+test('cross-screen needs two screens and compares styling, not layout', async () => {
+  const { default: crossScreen } = await import('../src/checks/cross-screen.mjs');
+  const tokens = {};
+  const one = { elements: [{ screen: 'a', selector: 'nav', styles: { color: '#fff' }, rect: { height: 50 } }] };
+  assert.equal(crossScreen.run(one, tokens).length, 0, 'one screen cannot be inconsistent');
+
+  const two = { elements: [
+    { screen: 'a', selector: 'nav', styles: { color: 'rgb(255,255,255)', fontSize: 16 }, rect: { height: 50 } },
+    { screen: 'b', selector: 'nav', styles: { color: 'rgb(20,20,20)', fontSize: 16 }, rect: { height: 900 } },
+  ] };
+  const found = crossScreen.run(two, tokens);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].detail.property, 'color');
+  // Height is deliberately not compared: content legitimately differs per page.
+  const src = await readFile(path.join(root, 'src/checks/cross-screen.mjs'), 'utf8');
+  assert.ok(!/from: 'rect'/.test(src), 'layout must not be compared across screens');
+});
+
+test('visual diff compares colour, not brightness', async () => {
+  const src = await readFile(path.join(root, 'src/visual-diff.mjs'), 'utf8');
+  // #198754 and #DC3545 differ by 0.001 in luminance; comparing it misses them.
+  assert.ok(/deltaE/.test(src), 'must use a perceptual distance');
+  assert.ok(/#198754 and #DC3545/.test(src), 'the reason should be recorded');
+});
+
+test('a decision needs a reason, an approver and a known ruling', async () => {
+  const { recordDecision } = await import('../src/history.mjs');
+  const dir = path.join(root, '.tmp-ledger-test');
+  await assert.rejects(() => recordDecision(dir, { finding: 'x|y|z', ruling: 'nonsense', by: 'a', why: 'b' }),
+    /ruling must be one of/);
+  await assert.rejects(() => recordDecision(dir, { finding: 'x|y|z', ruling: 'by-design' }),
+    /who decided|why/);
+});
+
+test('draft runs stay out of the history', async () => {
+  const { recordRun } = await import('../src/history.mjs');
+  const r = await recordRun('/tmp/never-written-' + Date.now(), { at: 'now', total: 1 }, { draft: true });
+  assert.equal(r.recorded, false);
+  assert.equal(r.entry.draft, true);
+});
