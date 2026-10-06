@@ -297,6 +297,14 @@ ${error ? `<div class="err"><b>Could not finish.</b> ${esc(error)}</div>` : ''}
   <details>
     <summary>Page settings</summary>
     <div class="inner">
+      <div class="field">
+        <label for="maxPages">How many pages <span class="hint">— follows links from this page, same site only</span></label>
+        <select id="maxPages" name="maxPages">
+          <option value="1">Just this page</option>
+          <option value="5">This page + up to 4 linked</option>
+          <option value="10">This page + up to 9 linked</option>
+        </select>
+      </div>
       <div class="row">
         <div class="field">
           <label for="waitFor">Wait for <span class="hint">— optional selector</span></label>
@@ -360,7 +368,10 @@ export function results(id, result, meta, images, mode) {
 
   return shell(`Results — ${esc(meta.project ?? 'design-audit')}`, `
 <h1>${esc(meta.project ?? 'Results')}</h1>
-<p class="lede">${esc(meta.baseUrl ?? '')}</p>
+<p class="lede">${(meta.pages?.length ?? 1) > 1
+  ? `${meta.pages.length} pages checked — ${meta.pages.map(u => esc(new URL(u).pathname)).join(', ')}`
+  : esc(meta.baseUrl ?? '')}${
+  meta.failed?.length ? ` · ${meta.failed.length} could not be loaded` : ''}</p>
 
 <div class="sum">
   <span class="stat"><b>${problems}</b> problems</span>

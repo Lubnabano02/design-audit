@@ -82,7 +82,10 @@ export const collectStyles = () => {
       role: role || null,
       text: text || null,
       interactive,
-      rect: { x: +rect.x.toFixed(1), y: +rect.y.toFixed(1), width: +rect.width.toFixed(1), height: +rect.height.toFixed(1) },
+      // Document-absolute, so markers line up on a full-page screenshot
+      // regardless of where the page happened to be scrolled.
+      rect: { x: +(rect.x + window.scrollX).toFixed(1), y: +(rect.y + window.scrollY).toFixed(1),
+              width: +rect.width.toFixed(1), height: +rect.height.toFixed(1) },
       styles: {
         color: cs.color,
         backgroundColor: cs.backgroundColor,

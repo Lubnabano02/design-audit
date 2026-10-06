@@ -20,7 +20,9 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 
 ## What it does
 
-**Capture** — drives the page with Playwright: loads it, runs any scripted interactions (log in, open a menu, select a row), screenshots it, and reads the computed styles of every visible element.
+**Capture** — drives the page with Playwright: loads it, runs any scripted interactions (log in, open a menu, select a row), takes a **full-page** screenshot, and reads the computed styles of every visible element. Coordinates are document-absolute, so a finding 4,000px down still gets marked where it actually is.
+
+**Follow** — optionally walks one hop out from the starting page and audits what it finds. Same origin only, never links that look like they change state (logout, delete, checkout), never non-pages, and never more than you ask for.
 
 **Fetch** — pulls the matching frame from Figma via the REST API, so the intended design sits next to the built one.
 
@@ -134,9 +136,9 @@ Results arrive as a page you can filter, with both reports one click away:
 
 | File | Who it's for |
 |---|---|
-| `review.html` | **The designer.** One card per *problem*, not per element — nine elements using the wrong font is one decision, not nine. Grouped by concern, in plain language, with colours shown as swatches, type sizes rendered, and failing text displayed in the colours that are failing. Hover a finding to light up every place it appears. Selectors are tucked into a "for your developer" line. |
-| `report.html` | **The developer.** Selectors, properties, measured against expected, filterable, with the Figma frame beside the build. |
-| `findings.csv` | **Triage.** One row per finding with severity, check, element, property, value and expected. Opens in Excel or Sheets for assigning work. Suppressed findings carry their reason, so a decision stays visible. |
+| `designer-review-<site>.html` | **The designer.** One card per *problem*, not per element — nine elements using the wrong font is one decision, not nine. Grouped by concern, in plain language, with colours shown as swatches, type sizes rendered, and failing text displayed in the colours that are failing. Hover a finding to light up every place it appears. Selectors are tucked into a "for your developer" line. |
+| `developer-report-<site>.html` | **The developer.** Selectors, properties, measured against expected, filterable, with the Figma frame beside the build. |
+| `findings-<site>.csv` | **Triage.** One row per finding with severity, check, element, property, value and expected. Opens in Excel or Sheets for assigning work. Suppressed findings carry their reason, so a decision stays visible. |
 
 <img src="docs/ui-designer-report.png" width="760" alt="The designer report: findings marked on the screenshot, grouped by design concern, with colour swatches and rendered type">
 
@@ -215,10 +217,10 @@ Being honest about the edges, because a tool that overstates itself wastes your 
 
 - **No pixel diffing.** It downloads the Figma frame and puts it beside the build capture, but does not compare them automatically. Overlay comparison is genuinely hard to get right — anti-aliasing, font rendering and dynamic content produce enough false positives to drown the real findings. The rule checks are more useful per unit of effort, which is why they came first.
 - **The Figma download path has not been run against the live API.** Everything else has: the capture, the checks, the HTML report and the local UI were all run end to end against a public site, and the screenshots above are that real output. The Figma half is written and unit-tested for URL parsing, but nobody has yet pointed it at a real file with a real token. Expect to hit something the first time.
-- **The local UI audits one page at a time.** Multi-screen runs still need a config file.
 - **Results live in memory.** Downloads stay available while the server is up; stopping it clears them.
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.
-- **Captures one state per screen.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Capturing several states per screen would need the config to describe them as separate entries.
+- **Captures one state per page.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Several states per page would need them described as separate entries.
+- **Link-following goes one hop.** It reads links on the page you give it; it does not walk the whole site, read sitemaps, or go deeper.
 - **Not tested against every auth setup.** `storageState` covers the common case of a saved logged-in session. SSO flows that re-challenge will need their own handling.
 - **Static analysis only.** It reads what rendered. It will not catch a layout that breaks at a viewport you didn't list.
 

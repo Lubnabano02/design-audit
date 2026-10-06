@@ -17,6 +17,7 @@ import { toHTML, imageDataUri } from './report-html.mjs';
 import { toCSV } from './report-csv.mjs';
 import { toDesignerHTML } from './report-designer.mjs';
 import { normaliseNodeId } from './figma.mjs';
+import { discover } from './crawl.mjs';
 import { landing, form, results, DEFAULT_TOKENS } from './ui.mjs';
 
 /** Finished runs, so the result page and its downloads survive a reload. */
@@ -90,14 +91,31 @@ async function doRun(input) {
     };
     const config = { baseUrl: target.origin, viewport: { width: w, height: h }, captureTimeoutMs: 30000 };
 
-    let snapshot, screenshot;
-    try {
-      ({ snapshot, screenshot } = await captureScreen(screen, config, { outDir, browser }));
-    } catch (err) {
-      throw new Error(`Could not load that page — ${err.message.split('\n')[0]}`);
+    const maxPages = Math.min(Math.max(parseInt(input.maxPages, 10) || 1, 1), 12);
+    const { urls, error: crawlError } = await discover(browser, input.url, { maxPages });
+
+    const pages = [];
+    for (const [i, href] of urls.entries()) {
+      const u = new URL(href);
+      const sc = { ...screen, name: i === 0 ? 'page' : `page-${i + 1}`, path: u.pathname + u.search };
+      try {
+        const { snapshot, screenshot } = await captureScreen(
+          sc, { ...config, baseUrl: u.origin }, { outDir, browser });
+        pages.push({ url: href, snapshot, screenshot });
+      } catch (err) {
+        // One bad page should not lose the rest of the run.
+        pages.push({ url: href, failed: err.message.split('\n')[0] });
+      }
+    }
+    if (!pages.some(p => p.snapshot)) {
+      throw new Error(`Could not load that page — ${pages[0]?.failed ?? 'unknown error'}`);
     }
 
-    const result = applyExceptions(runChecks(snapshot, tokens, { checks: {} }), { exceptions: [] });
+    const ok = pages.filter(p => p.snapshot);
+    const snapshot = ok[0].snapshot;
+    const screenshot = ok[0].screenshot;
+    const allElements = ok.flatMap(p => p.snapshot.elements);
+    const result = applyExceptions(runChecks({ elements: allElements }, tokens, { checks: {} }), { exceptions: [] });
 
     let figmaImg = null;
     if (compare) {
@@ -113,7 +131,12 @@ async function doRun(input) {
       }
     }
 
-    const meta = { project: target.hostname, baseUrl: input.url };
+    const meta = {
+      project: target.hostname, baseUrl: input.url,
+      viewport: { width: w, height: h }, pageHeight: snapshot.pageHeight,
+      pages: ok.map(p => p.url), failed: pages.filter(p => p.failed),
+      crawlError,
+    };
     const images = { build: await imageDataUri(screenshot), figma: figmaImg };
 
     return {
@@ -122,7 +145,7 @@ async function doRun(input) {
       images,
       result,
       html: toHTML(result, meta, images),
-      review: toDesignerHTML(result, { ...meta, viewport: { width: w, height: h } }, images),
+      review: toDesignerHTML(result, meta, images),
       csv: toCSV(result, meta),
       notes: snapshot.notes ?? [],
     };
@@ -153,15 +176,15 @@ export function serve({ port = 4000 } = {}) {
           if (!run) return send(404, form('audit', { error: 'That result has expired. Runs are kept only while the server is up.' }));
           if (m[2] === 'report.html') {
             return send(200, run.html, 'text/html; charset=utf-8',
-              { 'content-disposition': `attachment; filename="design-audit-${run.meta.project}.html"` });
+              { 'content-disposition': `attachment; filename="developer-report-${run.meta.project}.html"` });
           }
           if (m[2] === 'review.html') {
             return send(200, run.review, 'text/html; charset=utf-8',
-              { 'content-disposition': `attachment; filename="design-review-${run.meta.project}.html"` });
+              { 'content-disposition': `attachment; filename="designer-review-${run.meta.project}.html"` });
           }
           if (m[2] === 'findings.csv') {
             return send(200, run.csv, 'text/csv; charset=utf-8',
-              { 'content-disposition': `attachment; filename="design-audit-${run.meta.project}.csv"` });
+              { 'content-disposition': `attachment; filename="findings-${run.meta.project}.csv"` });
           }
           return send(200, results(m[1], run.result, run.meta, run.images, run.mode));
         }

@@ -110,3 +110,23 @@ test('element descriptions are unique among same-tag siblings', async () => {
   const src = collectStyles.toString();
   assert.ok(/nth-of-type/.test(src), 'describe() must disambiguate same-tag siblings');
 });
+
+test('crawl refuses to leave the origin or follow dangerous links', async () => {
+  const { isWorthVisiting, normalise } = await import('../src/crawl.mjs');
+  const origin = 'https://example.com';
+  assert.ok(isWorthVisiting('https://example.com/about', origin));
+  assert.ok(!isWorthVisiting('https://evil.com/about', origin), 'must stay on origin');
+  assert.ok(!isWorthVisiting('https://example.com/logout', origin), 'must not follow logout');
+  assert.ok(!isWorthVisiting('https://example.com/account/delete', origin), 'must not follow delete');
+  assert.ok(!isWorthVisiting('https://example.com/brochure.pdf', origin), 'must skip non-pages');
+  assert.ok(!isWorthVisiting('mailto:a@b.com', origin));
+});
+
+test('crawl treats the same page as one page', async () => {
+  const { normalise } = await import('../src/crawl.mjs');
+  const base = 'https://example.com/docs';
+  assert.equal(normalise('/docs/', base), normalise('/docs', base));
+  assert.equal(normalise('/docs#intro', base), normalise('/docs', base));
+  assert.equal(normalise('/docs?utm_source=x', base), normalise('/docs', base));
+  assert.notEqual(normalise('/docs?page=2', base), normalise('/docs', base));
+});

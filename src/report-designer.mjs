@@ -95,6 +95,8 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
 h1{font-size:25px;margin:0 0 6px;letter-spacing:-.02em}
 .lede{color:var(--ink-2);font-size:14px;margin:0 0 28px}
+.who{display:inline-block;font-size:12px;color:var(--ink-2);background:var(--surface);
+  border:1px solid var(--line);border-radius:999px;padding:5px 13px;margin:0 0 18px}
 .stats{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 30px}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:999px;
   padding:7px 14px;font-size:12.5px;color:var(--ink-2)}
@@ -161,7 +163,8 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
   const findings = collapseFindings(result.findings ?? []);
   const stats = collapseStats(findings);
   const vw = meta.viewport?.width ?? 1440;
-  const vh = meta.viewport?.height ?? 900;
+  // The screenshot is the whole page, so markers scale to its height.
+  const vh = meta.pageHeight ?? meta.viewport?.height ?? 900;
 
   const numbered = findings.map((f, i) => ({ ...f, n: i + 1 }));
 
@@ -204,10 +207,11 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
 
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Design review${meta.project ? ' — ' + esc(meta.project) : ''}</title>
+<title>Designer review${meta.project ? ' — ' + esc(meta.project) : ''}</title>
 <style>${CSS}</style></head><body><div class="wrap">
 
-<h1>Design review${meta.project ? ' — ' + esc(meta.project) : ''}</h1>
+<h1>Designer review${meta.project ? ' — ' + esc(meta.project) : ''}</h1>
+<p class="who">For the designer — what changed and where. The developer report has the selectors and exact values.</p>
 <p class="lede">${new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC${
   meta.baseUrl ? ` · ${esc(meta.baseUrl)}` : ''}</p>
 

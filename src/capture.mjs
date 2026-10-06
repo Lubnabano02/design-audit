@@ -46,14 +46,17 @@ export async function captureScreen(screen, config, { outDir, browser }) {
     const dir = path.join(outDir, screen.name);
     await fs.mkdir(dir, { recursive: true });
     const shot = path.join(dir, 'build.png');
-    await page.screenshot({ path: shot, fullPage: screen.fullPage ?? false });
+    await page.screenshot({ path: shot, fullPage: screen.fullPage ?? true });
 
     const elements = (await page.evaluate(collectStyles)).map(e => ({ ...e, screen: screen.name }));
+    const pageHeight = await page.evaluate(() => Math.max(
+      document.documentElement.scrollHeight, document.body?.scrollHeight ?? 0));
     const snapshot = {
       screen: screen.name,
       url,
       capturedAt: new Date().toISOString(),
       viewport: screen.viewport ?? config.viewport,
+      pageHeight,
       notes,
       elements,
     };

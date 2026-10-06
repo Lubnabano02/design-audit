@@ -30,6 +30,8 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .wrap{max-width:1180px;margin:0 auto;padding:32px 16px 72px}
 h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em}
 .sub{color:var(--ink-2);font-size:13px;margin:0 0 20px}
+.who{display:inline-block;font-size:12px;color:var(--ink-2);background:var(--panel);
+  border:1px solid var(--line);border-radius:999px;padding:5px 13px;margin:0 0 18px}
 .sub a{color:var(--accent)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;
@@ -167,11 +169,12 @@ export function toHTML(result, meta = {}, images = {}) {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Design audit${meta.project ? ' — ' + esc(meta.project) : ''}</title>
+<title>Developer report${meta.project ? ' — ' + esc(meta.project) : ''}</title>
 <style>${STYLE}</style></head>
 <body><div class="wrap">
 
-<h1>Design audit${meta.project ? ' — ' + esc(meta.project) : ''}</h1>
+<h1>Developer report${meta.project ? ' — ' + esc(meta.project) : ''}</h1>
+<p class="who">For the developer — every element, with selectors and exact values. The designer review groups these by problem.</p>
 <p class="sub">${new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC${
   meta.baseUrl ? ` · <a href="${esc(meta.baseUrl)}">${esc(meta.baseUrl)}</a>` : ''}</p>
 
