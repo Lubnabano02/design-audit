@@ -96,6 +96,14 @@ body{margin:0;background:var(--bg);color:var(--ink);
 .wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
 h1{font-size:25px;margin:0 0 6px;letter-spacing:-.02em}
 .lede{color:var(--ink-2);font-size:14px;margin:0 0 28px}
+.limits{border:1px solid color-mix(in srgb,var(--p2) 45%,transparent);
+  background:color-mix(in srgb,var(--p2) 10%,transparent);border-radius:11px;
+  padding:14px 16px;margin:0 0 26px;font-size:13px}
+.limits b{display:block;margin:0 0 8px}
+.limits ul{margin:0;padding:0;list-style:none}
+.limits li{color:var(--ink-2);margin:0 0 4px}
+.limits li span{color:var(--ink);font-weight:600;display:inline-block;min-width:112px}
+.limits p{margin:9px 0 0;color:var(--ink-2)}
 .who{display:inline-block;font-size:12px;color:var(--ink-2);background:var(--surface);
   border:1px solid var(--line);border-radius:999px;padding:5px 13px;margin:0 0 18px}
 .stats{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 30px}
@@ -217,6 +225,10 @@ export function toDesignerHTML(result, meta = {}, images = {}) {
 <p class="who">For the designer — what changed and where. The developer report has the selectors and exact values.</p>
 <p class="lede">${new Date().toISOString().replace('T', ' ').slice(0, 16)} UTC${
   meta.baseUrl ? ` · ${esc(meta.baseUrl)}` : ''}</p>
+${meta.source === 'image' ? `<div class="limits">
+  <b>From a screenshot — colour only.</b>
+  <ul>${(meta.limits ?? []).map(([t, why]) => `<li><span>${esc(t)}</span> ${esc(why)}</li>`).join('')}</ul>
+  <p>Run the live page to check these.</p></div>` : ''}
 
 <div class="stats">
   <span class="stat"><b>${findings.length}</b> things to look at</span>

@@ -18,6 +18,8 @@ import { toCSV } from './report-csv.mjs';
 import { toDesignerHTML } from './report-designer.mjs';
 import { normaliseNodeId } from './figma.mjs';
 import { discover } from './crawl.mjs';
+import { auditImage, IMAGE_LIMITS } from './image-audit.mjs';
+import { readBody, parseMultipart, imageToDataUri } from './multipart.mjs';
 import { landing, form, results, DEFAULT_TOKENS } from './ui.mjs';
 
 /** Finished runs, so the result page and its downloads survive a reload. */
@@ -31,20 +33,60 @@ function remember(run) {
   return id;
 }
 
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', c => {
-      data += c;
-      if (data.length > 2e6) { reject(new Error('Request too large')); req.destroy(); }
-    });
-    req.on('end', () => resolve(Object.fromEntries(new URLSearchParams(data))));
-    req.on('error', reject);
-  });
+const MAX_UPLOAD = 12e6;
+
+async function parseBody(req) {
+  const type = req.headers['content-type'] ?? '';
+  if (type.startsWith('multipart/form-data')) {
+    const body = await readBody(req, MAX_UPLOAD);
+    const { fields, files } = parseMultipart(body, type);
+    return { ...fields, _files: files };
+  }
+  const body = await readBody(req, 2e6);
+  return Object.fromEntries(new URLSearchParams(body.toString('utf8')));
 }
 
 function figmaKeyFrom(url) {
   return (String(url).match(/\/(?:design|file)\/([A-Za-z0-9]+)/) || [])[1] ?? null;
+}
+
+async function doRunImage(input) {
+  let tokens;
+  try {
+    tokens = JSON.parse(input.tokens || DEFAULT_TOKENS);
+  } catch (err) {
+    throw new Error(`The design tokens are not valid JSON — ${err.message}`);
+  }
+
+  const dataUri = imageToDataUri(input._files?.image);
+
+  let chromium;
+  try { ({ chromium } = await import('playwright')); }
+  catch { throw new Error('Playwright is not installed. Run: npm install && npx playwright install chromium'); }
+
+  const browser = await chromium.launch();
+  try {
+    const { findings, extracted } = await auditImage(browser, dataUri, tokens);
+    const result = applyExceptions(findings, { exceptions: [] });
+    const name = input._files.image.filename || 'screenshot';
+    const meta = {
+      project: name, baseUrl: null, source: 'image',
+      viewport: { width: extracted.width, height: extracted.height },
+      pageHeight: extracted.height,
+      limits: IMAGE_LIMITS,
+      palette: extracted.significant,
+    };
+    const images = { build: dataUri, figma: null };
+    return {
+      mode: 'audit', source: 'image', meta, images, result,
+      html: toHTML(result, meta, images),
+      review: toDesignerHTML(result, meta, images),
+      csv: toCSV(result, meta),
+      notes: [],
+    };
+  } finally {
+    await browser.close();
+  }
 }
 
 async function doRun(input) {
@@ -203,7 +245,7 @@ export function serve({ port = 4000 } = {}) {
         const input = await parseBody(req);
         const mode = input.mode === 'compare' ? 'compare' : 'audit';
         try {
-          const run = await doRun(input);
+          const run = input.source === 'image' ? await doRunImage(input) : await doRun(input);
           const id = remember(run);
           // Redirect so a reload does not re-run the audit.
           return res.writeHead(303, { location: `/r/${id}` }).end();

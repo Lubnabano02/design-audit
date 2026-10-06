@@ -8,6 +8,8 @@ It is not tied to any particular product. Point it at a URL, give it your tokens
 
 **Two ways to use it.** Paste a URL into a local page and press a button, or wire the CLI into CI.
 
+**Two things to check.** A live page, or a screenshot — a mockup, an export, an image somebody sent you.
+
 ```bash
 node src/cli.mjs serve      # → http://127.0.0.1:4000
 ```
@@ -159,6 +161,14 @@ Results arrive as a page you can filter, with both reports one click away:
 <img src="docs/ui-designer-report.png" width="760" alt="The designer report: findings marked on the screenshot, grouped by design concern, with colour swatches and rendered type">
 
 It binds to localhost only and holds the Figma token in memory for the length of the run — never written to disk. That is the reason this runs on your machine instead of being hosted somewhere.
+
+## Checking a screenshot
+
+Audit mode takes either a URL or an image. A picture has no page behind it, so **only colour can be checked** — type, spacing, targets, readability and behaviour all need a running page. The report says so at the top rather than quietly returning a thinner audit.
+
+<img src="docs/ui-audit-image.png" width="520" alt="The audit form with the screenshot input selected, warning that only colour can be checked">
+
+What it does do is let you hold a mockup to the same palette as the build, which the URL mode cannot. Colours are extracted in a canvas with smoothing off, bucketed, and matched against your palette by perceptual distance.
 
 ## Use it on your own project
 

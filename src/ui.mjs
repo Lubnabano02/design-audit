@@ -86,6 +86,14 @@ details .inner{padding:4px 13px 14px}
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
 .btn.sec:hover{background:var(--line)}
 .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line-2);border-radius:9px;padding:3px;gap:3px}
+.segb{font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-2);background:none;border:0;
+  border-radius:7px;padding:7px 15px;cursor:pointer}
+.segb[aria-selected="true"]{background:var(--accent);color:#fff}
+.warn{font-size:12.5px;color:var(--ink-2);background:color-mix(in srgb,var(--p2) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--p2) 40%,transparent);border-radius:8px;
+  padding:10px 12px;margin:10px 0 0;line-height:1.5}
+.warn b{color:var(--ink)}
 
 .err{border:1px solid var(--p1);background:color-mix(in srgb,var(--p1) 12%,transparent);
   border-radius:10px;padding:13px 15px;font-size:13.5px;margin:0 0 22px}
@@ -277,14 +285,36 @@ export function form(mode, { error, values = {} } = {}) {
 <h1>${esc(title)}</h1>
 <p class="lede">${esc(lede)}</p>
 ${error ? `<div class="err"><b>Could not finish.</b> ${esc(error)}</div>` : ''}
-<form method="POST" action="/run" id="f">
+<form method="POST" action="/run" id="f"${compare ? '' : ' enctype="multipart/form-data"'}>
   <input type="hidden" name="mode" value="${esc(mode)}">
 
+  ${compare ? `
   <div class="field">
     <label for="url">Page URL <span class="hint">— the page to check</span></label>
     <input id="url" name="url" type="url" required placeholder="https://example.com/dashboard"
            value="${esc(values.url ?? '')}" autofocus>
+  </div>` : `
+  <div class="field">
+    <label>What are you checking?</label>
+    <div class="seg" role="tablist">
+      <button type="button" class="segb" data-src="url" role="tab" aria-selected="true">A live page</button>
+      <button type="button" class="segb" data-src="image" role="tab" aria-selected="false">A screenshot</button>
+    </div>
   </div>
+  <input type="hidden" name="source" id="source" value="url">
+
+  <div class="field" data-when="url">
+    <label for="url">Page URL</label>
+    <input id="url" name="url" type="url" placeholder="https://example.com/dashboard"
+           value="${esc(values.url ?? '')}" autofocus>
+  </div>
+
+  <div class="field" data-when="image" hidden>
+    <label for="image">Screenshot <span class="hint">— PNG, JPEG, WebP, GIF or AVIF</span></label>
+    <input id="image" name="image" type="file" accept="image/*">
+    <p class="warn">A picture has no page behind it, so only <b>colour</b> can be checked.
+       Type, spacing, targets, readability and behaviour all need a live page.</p>
+  </div>`}
 
   ${compare ? `
   <div class="field">
@@ -353,6 +383,25 @@ ${error ? `<div class="err"><b>Could not finish.</b> ${esc(error)}</div>` : ''}
   </div>
 </form>
 <script>
+const srcField = document.getElementById('source');
+if (srcField) {
+  const panes = [...document.querySelectorAll('[data-when]')];
+  const urlInput = document.getElementById('url');
+  const imgInput = document.getElementById('image');
+  for (const b of document.querySelectorAll('.segb')) {
+    b.addEventListener('click', () => {
+      const pick = b.dataset.src;
+      srcField.value = pick;
+      document.querySelectorAll('.segb').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+      panes.forEach(p => { p.hidden = p.dataset.when !== pick; });
+      // Only the visible input should be required, or the form will not submit.
+      if (urlInput) urlInput.required = pick === 'url';
+      if (imgInput) imgInput.required = pick === 'image';
+      (pick === 'url' ? urlInput : imgInput)?.focus();
+    });
+  }
+  if (urlInput) urlInput.required = true;
+}
 document.getElementById('f').addEventListener('submit', e => {
   const b = document.getElementById('go');
   b.disabled = true; b.textContent = 'Running…';

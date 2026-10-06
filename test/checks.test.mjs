@@ -148,3 +148,10 @@ test('known consent platforms all offer a decline path or none at all', async ()
   // No site-specific entries: a generic tool should not special-case one company.
   assert.ok(!/Ryanair|Amazon|Facebook/i.test(block), 'no site-specific entries');
 });
+
+test('image colour buckets never overflow a byte', async () => {
+  const src = await readFile(path.join(root, 'src/image-audit.mjs'), 'utf8');
+  // Math.round(255 / 8) * 8 === 256, which wraps and corrupts the channel.
+  assert.ok(!/Math\.round\(data\[/.test(src), 'channels must be masked, not rounded');
+  assert.ok(/& 0xF8/.test(src), 'channels should be masked to a multiple of 8');
+});
