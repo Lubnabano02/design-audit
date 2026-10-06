@@ -8,6 +8,7 @@
  */
 
 import { collapseFindings, collapseStats } from './collapse.mjs';
+import { RUNTIME_IDS } from './checks/index.mjs';
 
 const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -160,7 +161,9 @@ footer a{color:var(--ink-2)}
  * @param {{build?:string|null}} images  data URIs
  */
 export function toDesignerHTML(result, meta = {}, images = {}) {
-  const findings = collapseFindings(result.findings ?? []);
+  // Runtime problems belong to the developer; this report is about how it looks.
+  const designOnly = (result.findings ?? []).filter(f => !RUNTIME_IDS.has(f.check));
+  const findings = collapseFindings(designOnly);
   const stats = collapseStats(findings);
   const vw = meta.viewport?.width ?? 1440;
   // The screenshot is the whole page, so markers scale to its height.

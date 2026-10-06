@@ -11,6 +11,16 @@ const esc = s => String(s ?? '')
 
 const count = (arr, sev) => arr.filter(f => f.severity === sev).length;
 
+/** Developer sections, in the order a developer would triage them. */
+const SECTIONS = [
+  { ids: ['errors'],          title: 'Errors and failed requests', blurb: 'Anything that threw, or never arrived.' },
+  { ids: ['interactions'],    title: 'Interactions',               blurb: 'Controls that were driven, and how long they took to respond.' },
+  { ids: ['pageLoad', 'mainThread'], title: 'Performance',         blurb: 'Load timing, main-thread blocking and layout stability.' },
+  { ids: ['brokenControls'],  title: 'Broken controls',            blurb: 'Links that go nowhere, unnamed buttons, images that failed, unlabelled fields.' },
+  { ids: ['contrast', 'colorTokens', 'typeScale', 'spacingGrid', 'targetSize'],
+    title: 'Design implementation', blurb: 'Where the build drifted from the tokens. The designer review groups these by problem.' },
+];
+
 const STYLE = `
 :root{
   --bg:#0e1116; --panel:#161b22; --panel-2:#1c2230; --line:#2a3240;
@@ -67,6 +77,11 @@ td{padding:11px 10px;vertical-align:top}
 .sel:hover{color:var(--accent)}
 .check{font-size:11px;color:var(--ink-3)}
 .none{padding:40px 0;text-align:center;color:var(--ink-3)}
+.sec{margin:0 0 30px}
+.sh{display:flex;align-items:baseline;gap:9px;margin:0 0 3px}
+.sh h2{font-size:16px;margin:0;letter-spacing:-.01em}
+.sh .n{font-size:12px;color:var(--ink-3)}
+.sb{color:var(--ink-2);font-size:12.5px;margin:0 0 11px}
 details{margin:22px 0 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
 details>summary{cursor:pointer;padding:12px 14px;font-size:13px;font-weight:600}
 details .inner{padding:0 14px 14px}
@@ -136,7 +151,7 @@ export function toHTML(result, meta = {}, images = {}) {
   const { findings, suppressed = [], expired = [], unused = [] } = result;
   const checksUsed = [...new Set(findings.map(f => f.check))].sort();
 
-  const rows = findings.map(f => {
+  const row = f => {
     const hay = `${f.severity} ${f.check} ${f.selector} ${f.message}`.toLowerCase();
     return `<tr data-sev="${esc(f.severity)}" data-check="${esc(f.check)}" data-hay="${esc(hay)}">
       <td><span class="sev ${esc(f.severity)}">${esc(f.severity)}</span></td>
@@ -144,7 +159,20 @@ export function toHTML(result, meta = {}, images = {}) {
           <div class="check">${esc(f.check)}${f.screen && f.screen !== '-' ? ' · ' + esc(f.screen) : ''}</div></td>
       <td>${esc(f.message)}</td>
     </tr>`;
-  }).join('\n');
+  };
+
+  const sections = SECTIONS.map(sec => {
+    const group = findings.filter(f => sec.ids.includes(f.check));
+    if (!group.length) return '';
+    return `<section class="sec">
+      <div class="sh"><h2>${esc(sec.title)}</h2><span class="n">${group.length}</span></div>
+      <p class="sb">${esc(sec.blurb)}</p>
+      <table><thead><tr><th>Severity</th><th>Element</th><th>Finding</th></tr></thead>
+        <tbody>${group.map(row).join('')}</tbody></table>
+    </section>`;
+  }).join('');
+
+  const rows = findings.map(row).join('\n');
 
   const suppressedBlock = suppressed.length ? `
   <details>
@@ -180,6 +208,8 @@ export function toHTML(result, meta = {}, images = {}) {
 
 <div class="chips">
   <span class="chip"><b>${findings.length}</b> findings</span>
+  ${(() => { const fn = findings.filter(f => ['errors','interactions','pageLoad','mainThread','brokenControls'].includes(f.check)).length;
+     return fn ? `<span class="chip"><b>${fn}</b> functional</span><span class="chip"><b>${findings.length - fn}</b> design</span>` : ''; })()}
   <span class="chip p1"><b>${count(findings, 'P1')}</b> P1</span>
   <span class="chip p2"><b>${count(findings, 'P2')}</b> P2</span>
   <span class="chip p3"><b>${count(findings, 'P3')}</b> P3</span>
@@ -201,10 +231,7 @@ export function toHTML(result, meta = {}, images = {}) {
   <input id="q" type="search" placeholder="Filter by selector or message…">
 </div>
 
-${findings.length ? `<table>
-  <thead><tr><th>Severity</th><th>Element</th><th>Finding</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table>
+${findings.length ? `${sections}
 <p class="sub" style="margin-top:12px"><span id="shown">${findings.length}</span> of ${findings.length} shown</p>`
 : `<p class="none">No findings. Either the build matches the system, or the checks are not looking hard enough — worth knowing which.</p>
 <p class="sub" style="display:none"><span id="shown">0</span></p>`}

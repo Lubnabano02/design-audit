@@ -3,8 +3,11 @@ import typeScale from './type-scale.mjs';
 import spacingGrid from './spacing-grid.mjs';
 import contrast from './contrast.mjs';
 import targetSize from './target-size.mjs';
+import { runtimeChecks, RUNTIME_IDS } from './runtime.mjs';
 
-export const checks = [colorTokens, typeScale, spacingGrid, contrast, targetSize];
+export const designChecks = [colorTokens, typeScale, spacingGrid, contrast, targetSize];
+export const checks = [...designChecks, ...runtimeChecks];
+export { RUNTIME_IDS };
 export const byId = Object.fromEntries(checks.map(c => [c.id, c]));
 
 /**
@@ -13,7 +16,7 @@ export const byId = Object.fromEntries(checks.map(c => [c.id, c]));
  * @param {object} tokens   the design system, as rules
  * @param {object} config   { checks: { <id>: { enabled, severity } } }
  */
-export function runChecks(snapshot, tokens, config = {}) {
+export function runChecks(snapshot, tokens, config = {}, ctx = {}) {
   const settings = config.checks ?? {};
   const findings = [];
 
@@ -21,7 +24,7 @@ export function runChecks(snapshot, tokens, config = {}) {
     const opts = settings[check.id] ?? {};
     if (opts.enabled === false) continue;
     try {
-      findings.push(...check.run(snapshot, tokens, opts));
+      findings.push(...check.run(snapshot, tokens, opts, ctx));
     } catch (err) {
       findings.push({
         check: check.id, severity: 'P1', screen: '-', selector: '-',

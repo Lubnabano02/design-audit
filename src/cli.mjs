@@ -109,7 +109,11 @@ async function cmdCapture(alsoCheck) {
   const tokens = await loadTokens(config._tokensPath);
   const exceptions = await loadExceptions(config._exceptionsPath);
   const all = { elements: captures.flatMap(c => c.snapshot.elements) };
-  const result = applyExceptions(runChecks(all, tokens, config), exceptions);
+  const ctx = { pages: captures.map(c => ({
+    name: c.snapshot.screen, url: c.snapshot.url,
+    runtime: c.snapshot.runtime, interactions: c.snapshot.interactions,
+  })) };
+  const result = applyExceptions(runChecks(all, tokens, config, ctx), exceptions);
 
   const meta = { project: path.basename(config._dir), baseUrl: config.baseUrl };
   await writeFile(path.join(outDir, 'report.md'), toMarkdown(result, meta));

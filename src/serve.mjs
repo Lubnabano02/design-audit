@@ -115,7 +115,12 @@ async function doRun(input) {
     const snapshot = ok[0].snapshot;
     const screenshot = ok[0].screenshot;
     const allElements = ok.flatMap(p => p.snapshot.elements);
-    const result = applyExceptions(runChecks({ elements: allElements }, tokens, { checks: {} }), { exceptions: [] });
+    const ctx = { pages: ok.map(p => ({
+      name: p.snapshot.screen, url: p.url,
+      runtime: p.snapshot.runtime, interactions: p.snapshot.interactions,
+    })) };
+    const result = applyExceptions(
+      runChecks({ elements: allElements }, tokens, { checks: {} }, ctx), { exceptions: [] });
 
     let figmaImg = null;
     if (compare) {

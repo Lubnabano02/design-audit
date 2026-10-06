@@ -261,6 +261,9 @@ export const DEFAULT_TOKENS = JSON.stringify({
   spacing: { basePx: 4 },
   contrast: { minNormalText: 4.5, minLargeText: 3.0 },
   targetSize: { minPx: 24 },
+  performance: { pageLoadWarnMs: 2500, pageLoadFailMs: 5000, ttfbWarnMs: 600,
+                 longTaskMs: 50, longTaskBudgetMs: 400,
+                 interactionWarnMs: 300, interactionFailMs: 1000, layoutShiftWarn: 0.1 },
 }, null, 2);
 
 export function form(mode, { error, values = {} } = {}) {

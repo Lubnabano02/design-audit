@@ -24,6 +24,17 @@
     "largeTextPx": 24,
     "largeTextBoldPx": 18.66
   },
+  "performance": {
+    "$comment": "Developer-side limits. Warn is a target, fail is a P1.",
+    "pageLoadWarnMs": 2500,
+    "pageLoadFailMs": 5000,
+    "ttfbWarnMs": 600,
+    "longTaskMs": 50,
+    "longTaskBudgetMs": 400,
+    "interactionWarnMs": 300,
+    "interactionFailMs": 1000,
+    "layoutShiftWarn": 0.1
+  },
   "targetSize": {
     "minPx": 24,
     "$comment": "WCAG 2.2 SC 2.5.8 (AA) is 24x24. Use 44 for SC 2.5.5 (AAA)."

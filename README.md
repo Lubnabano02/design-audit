@@ -28,7 +28,9 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 
 **Fold** — findings that say exactly the same thing become one problem that lists every element it affects. On the demo site that turns 49 findings into 22 decisions. The developer report and the CSV still list every element, because each one has to be fixed.
 
-**Check** — runs rules over the captured styles:
+**Check** — two sets of rules, one per audience.
+
+*Design* — how it looks, read from the computed styles:
 
 | Check | What it catches |
 |---|---|
@@ -37,6 +39,16 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 | `spacingGrid` | Padding and margin that aren't multiples of the base unit |
 | `contrast` | Text below WCAG AA, measured against the background the text **actually renders on** — resolved by walking up the DOM through transparent ancestors, and compositing translucent colours before measuring |
 | `targetSize` | Interactive controls below the minimum target size (WCAG 2.2 SC 2.5.8) |
+
+*Runtime* — whether it works, read from the page as it actually ran:
+
+| Check | What it catches |
+|---|---|
+| `errors` | Uncaught exceptions, console errors and warnings, failed requests, 4xx and 5xx responses |
+| `interactions` | Controls that were driven and did not respond — or did not work at all |
+| `pageLoad` | Load time and time to first byte against your thresholds |
+| `mainThread` | Long tasks that blocked the main thread, and layout shift |
+| `brokenControls` | Links that go nowhere, buttons with no accessible name, images that failed to load, fields with no label |
 
 **Report** — a designer review and a developer report as self-contained HTML, a findings CSV for triage, and Markdown plus JSON for CI. Exits non-zero on a P1 so it can gate a pipeline.
 
@@ -136,7 +148,7 @@ Results arrive as a page you can filter, with both reports one click away:
 
 | File | Who it's for |
 |---|---|
-| `designer-review-<site>.html` | **The designer.** One card per *problem*, not per element — nine elements using the wrong font is one decision, not nine. Grouped by concern, in plain language, with colours shown as swatches, type sizes rendered, and failing text displayed in the colours that are failing. Hover a finding to light up every place it appears. Selectors are tucked into a "for your developer" line. |
+| `designer-review-<site>.html` | **The designer.** Design concerns only — runtime problems belong in the developer report. One card per *problem*, not per element — nine elements using the wrong font is one decision, not nine. Grouped by concern, in plain language, with colours shown as swatches, type sizes rendered, and failing text displayed in the colours that are failing. Hover a finding to light up every place it appears. Selectors are tucked into a "for your developer" line. |
 | `developer-report-<site>.html` | **The developer.** Selectors, properties, measured against expected, filterable, with the Figma frame beside the build. |
 | `findings-<site>.csv` | **Triage.** One row per finding with severity, check, element, property, value and expected. Opens in Excel or Sheets for assigning work. Suppressed findings carry their reason, so a decision stays visible. |
 
@@ -154,7 +166,12 @@ It binds to localhost only and holds the Figma token in memory for the length of
   "type":    { "families": ["Inter"], "sizesPx": [12, 14, 16, 20, 24, 32], "weights": [400, 500, 600, 700] },
   "spacing": { "basePx": 4 },
   "contrast":   { "minNormalText": 4.5, "minLargeText": 3.0 },
-  "targetSize": { "minPx": 24 }
+  "targetSize": { "minPx": 24 },
+  "performance": {
+    "pageLoadWarnMs": 2500, "pageLoadFailMs": 5000, "ttfbWarnMs": 600,
+    "longTaskMs": 50, "longTaskBudgetMs": 400,
+    "interactionWarnMs": 300, "interactionFailMs": 1000, "layoutShiftWarn": 0.1
+  }
 }
 ```
 
