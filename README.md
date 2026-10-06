@@ -22,6 +22,10 @@ Two modes. **Audit a page** checks a live page against your tokens. **Compare wi
 
 **Capture** — drives the page with Playwright: loads it, runs any scripted interactions (log in, open a menu, select a row), takes a **full-page** screenshot, and reads the computed styles of every visible element. Coordinates are document-absolute, so a finding 4,000px down still gets marked where it actually is.
 
+**Clear the way** — almost every real site opens behind a cookie dialog. Left alone it dims the page, so the screenshot is useless, and its own markup gets audited. It is dismissed before anything is measured, then the page is given time to settle, because dismissing often starts rendering that was blocked behind it.
+
+**Declining is the default.** Accepting on someone's behalf sets tracking cookies they did not ask for, and either answer clears the dialog equally well. Nine common consent platforms are recognised by selector, anything else by button text in six languages. You can override with your own selector, or turn it off.
+
 **Follow** — optionally walks one hop out from the starting page and audits what it finds. Same origin only, never links that look like they change state (logout, delete, checkout), never non-pages, and never more than you ask for.
 
 **Fetch** — pulls the matching frame from Figma via the REST API, so the intended design sits next to the built one.
@@ -238,6 +242,7 @@ Being honest about the edges, because a tool that overstates itself wastes your 
 - **No Figma-side token extraction.** Tokens are declared by hand in `tokens.json` rather than read from Figma variables. Reading them from the file via the Variables API is the obvious next step.
 - **Captures one state per page.** Interactions run in sequence and the shot is taken at the end (or at `captureAfter`). Several states per page would need them described as separate entries.
 - **Link-following goes one hop.** It reads links on the page you give it; it does not walk the whole site, read sitemaps, or go deeper.
+- **A consent dialog it cannot find stays put.** If something still covers more than 40% of the page after dismissal, the run says so rather than pretending the capture is clean.
 - **Not tested against every auth setup.** `storageState` covers the common case of a saved logged-in session. SSO flows that re-challenge will need their own handling.
 - **Static analysis only.** It reads what rendered. It will not catch a layout that breaks at a viewport you didn't list.
 

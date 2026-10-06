@@ -301,6 +301,18 @@ ${error ? `<div class="err"><b>Could not finish.</b> ${esc(error)}</div>` : ''}
     <summary>Page settings</summary>
     <div class="inner">
       <div class="field">
+        <label for="consent">Cookie banner <span class="hint">— cleared before anything is measured</span></label>
+        <select id="consent" name="consent">
+          <option value="decline">Decline it (recommended)</option>
+          <option value="accept">Accept it</option>
+          <option value="off">Leave it alone</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dismiss">Dismiss this first <span class="hint">— optional selector, if the banner is not found automatically</span></label>
+        <input id="dismiss" name="dismiss" placeholder="#cookie-banner .accept" value="${esc(values.dismiss ?? '')}">
+      </div>
+      <div class="field">
         <label for="maxPages">How many pages <span class="hint">— follows links from this page, same site only</span></label>
         <select id="maxPages" name="maxPages">
           <option value="1">Just this page</option>

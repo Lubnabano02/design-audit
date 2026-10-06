@@ -1,5 +1,6 @@
 import { collectStyles } from './snapshot.mjs';
 import { INSTALL_OBSERVERS, COLLECT_RUNTIME, watchPage } from './runtime.mjs';
+import { dismissOverlays } from './dismiss.mjs';
 
 /**
  * Drive a screen: load it, run its interactions, screenshot it, and read its styles.
@@ -34,6 +35,17 @@ export async function captureScreen(screen, config, { outDir, browser }) {
       }
     }
 
+    // Clear the consent dialog before anything is measured, or the shot is of
+    // a dimmed page and the dialog's own markup gets audited.
+    const consent = await dismissOverlays(page, {
+      mode: screen.consent ?? config.consent ?? 'decline',
+      custom: screen.dismiss ?? config.dismiss ?? null,
+    });
+    if (consent.overlay && consent.overlay.cover >= 0.4) {
+      notes.push({ level: 'P2', message:
+        `something still covers ${Math.round(consent.overlay.cover * 100)}% of the page (${consent.overlay.selector}) — findings behind it may be unreliable` });
+    }
+
     for (const step of screen.interactions ?? []) {
       const began = Date.now();
       try {
@@ -66,6 +78,7 @@ export async function captureScreen(screen, config, { outDir, browser }) {
       capturedAt: new Date().toISOString(),
       viewport: screen.viewport ?? config.viewport,
       pageHeight,
+      consent,
       runtime,
       interactions: steps,
       notes,

@@ -89,7 +89,9 @@ async function doRun(input) {
       waitFor: input.waitFor || null,
       viewport: { width: w, height: h },
     };
-    const config = { baseUrl: target.origin, viewport: { width: w, height: h }, captureTimeoutMs: 30000 };
+    const config = { baseUrl: target.origin, viewport: { width: w, height: h }, captureTimeoutMs: 30000,
+      consent: ['decline', 'accept', 'off'].includes(input.consent) ? input.consent : 'decline',
+      dismiss: input.dismiss?.trim() || null };
 
     const maxPages = Math.min(Math.max(parseInt(input.maxPages, 10) || 1, 1), 12);
     const { urls, error: crawlError } = await discover(browser, input.url, { maxPages });
@@ -140,6 +142,7 @@ async function doRun(input) {
       project: target.hostname, baseUrl: input.url,
       viewport: { width: w, height: h }, pageHeight: snapshot.pageHeight,
       pages: ok.map(p => p.url), failed: pages.filter(p => p.failed),
+      consent: ok[0]?.snapshot?.consent ?? null,
       crawlError,
     };
     const images = { build: await imageDataUri(screenshot), figma: figmaImg };

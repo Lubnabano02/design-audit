@@ -130,3 +130,21 @@ test('crawl treats the same page as one page', async () => {
   assert.equal(normalise('/docs?utm_source=x', base), normalise('/docs', base));
   assert.notEqual(normalise('/docs?page=2', base), normalise('/docs', base));
 });
+
+test('consent dismissal prefers declining over accepting', async () => {
+  const src = await readFile(path.join(root, 'src/dismiss.mjs'), 'utf8');
+  // Declining must be exhausted — known selectors and text — before accepting.
+  const declineFirst = src.indexOf("const first = mode === 'accept' ? 'accept' : 'decline'");
+  assert.ok(declineFirst > 0, 'decline must be the default preference');
+  assert.ok(/Accepting on someone's behalf sets tracking cookies/.test(src),
+    'the reason for declining should be written down');
+});
+
+test('known consent platforms all offer a decline path or none at all', async () => {
+  const src = await readFile(path.join(root, 'src/dismiss.mjs'), 'utf8');
+  const block = src.slice(src.indexOf('const KNOWN'), src.indexOf('/** Button text'));
+  const entries = [...block.matchAll(/cmp:\s*'([^']+)'/g)].map(m => m[1]);
+  assert.ok(entries.length >= 8, 'should cover the common consent platforms');
+  // No site-specific entries: a generic tool should not special-case one company.
+  assert.ok(!/Ryanair|Amazon|Facebook/i.test(block), 'no site-specific entries');
+});
